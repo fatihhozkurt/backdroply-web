@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Backdroply | Kullanim Kosullari</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: rgba(15, 23, 42, 0.78);
+        --line: rgba(148, 163, 184, 0.24);
+        --text: #dbeafe;
+        --muted: #94a3b8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(900px 500px at 10% -10%, rgba(34, 211, 238, 0.15), transparent 60%),
+          radial-gradient(900px 500px at 100% 0%, rgba(59, 130, 246, 0.14), transparent 60%),
+          var(--bg);
+      }
+      main {
+        max-width: 860px;
+        margin: 40px auto;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+      }
+      h1, h2 { margin: 0 0 14px; }
+      h1 { font-size: 28px; }
+      h2 { margin-top: 22px; font-size: 18px; }
+      p, li { color: var(--muted); line-height: 1.6; }
+      ul { margin: 10px 0 0 18px; padding: 0; }
+      a { color: #7dd3fc; }
+      .meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Kullanim Kosullari</h1>
+      <p class="meta">Son guncelleme: 8 Mart 2026</p>
+      <p>
+        Backdroply hizmetini kullanarak bu kosullari kabul etmis olursunuz.
+        Hizmet, en iyi caba prensibi ile sunulur ve model ciktilari sahneye gore degisebilir.
+      </p>
+
+      <h2>Kullanim Kurallari</h2>
+      <ul>
+        <li>Yalnizca yasal hakka sahip oldugunuz medya iceriklerini yuklemelisiniz.</li>
+        <li>Sistemi kotuye kullanmaya veya zarar vermeye yonelik yuklemeler yasaktir.</li>
+        <li>Dosya, sure ve eszamanli islem limitlerine uyulmalidir.</li>
+      </ul>
+
+      <h2>Sorumluluk Siniri</h2>
+      <p>
+        Arka plan kaldirma ciktilari otomatik model tahmini icerir. Hizmetin her sahnede kusursuz sonuc
+        verecegine dair mutlak garanti sunulmaz.
+      </p>
+
+      <h2>Odeme ve Token</h2>
+      <p>
+        Token paketleri kullanim hakki saglar. Turkiye'de resmi fatura/e-fatura surecleri icin
+        sirket yapisi ve mevzuat gereklilikleri ayrica degerlendirilmelidir.
+      </p>
+
+      <h2>Ilgili Metinler</h2>
+      <p>
+        Gizlilik icin <a href="/legal/privacy.html">Gizlilik Politikasi</a>, cerez tercihleri icin
+        <a href="/legal/cookies.html"> Cerez Politikasi</a> sayfasini ziyaret edebilirsiniz.
+      </p>
+    </main>
+  </body>
+</html>

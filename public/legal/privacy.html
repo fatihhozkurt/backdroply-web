@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Backdroply | Gizlilik Politikasi</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: rgba(15, 23, 42, 0.78);
+        --line: rgba(148, 163, 184, 0.24);
+        --text: #dbeafe;
+        --muted: #94a3b8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(900px 500px at 10% -10%, rgba(34, 211, 238, 0.15), transparent 60%),
+          radial-gradient(900px 500px at 100% 0%, rgba(59, 130, 246, 0.14), transparent 60%),
+          var(--bg);
+      }
+      main {
+        max-width: 860px;
+        margin: 40px auto;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+      }
+      h1, h2 { margin: 0 0 14px; }
+      h1 { font-size: 28px; }
+      h2 { margin-top: 22px; font-size: 18px; }
+      p, li { color: var(--muted); line-height: 1.6; }
+      ul { margin: 10px 0 0 18px; padding: 0; }
+      a { color: #7dd3fc; }
+      .meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Gizlilik Politikasi</h1>
+      <p class="meta">Son guncelleme: 8 Mart 2026</p>
+      <p>
+        Bu metin, Backdroply uzerinde islenen kisisel verilerin hangi amaclarla kullanildigini
+        ve kullanici tercihlerini nasil yonettigimizi ozetler.
+      </p>
+
+      <h2>Islenen Veriler</h2>
+      <ul>
+        <li>Google oturum acma ile alinan temel profil bilgileri (kimlik dogrulama icin).</li>
+        <li>Yuklenen medya dosyalari (arka plan kaldirma islemi icin).</li>
+        <li>Islem gecmisi, token kullanimi ve istege bagli My Media kayitlari.</li>
+      </ul>
+
+      <h2>Isleme Amaclari</h2>
+      <ul>
+        <li>Hizmeti calistirmak, guvenligi saglamak ve kotuye kullanimi onlemek.</li>
+        <li>Kullanici taleplerini islemek, cikti uretmek ve gecmis yonetimini saglamak.</li>
+        <li>Izin verilmis ise analitik olcum yapmak.</li>
+      </ul>
+
+      <h2>Saklama ve Silme</h2>
+      <p>
+        My Media ozelligi aciksa en fazla 10 cikti tutulur; yeni kayit geldiginde en eski kayit silinir.
+        Hesap silme islemi uygulama icinden baslatilabilir.
+      </p>
+
+      <h2>Iletisim ve Diger Metinler</h2>
+      <p>
+        Cerez tercihleri icin <a href="/legal/cookies.html">Cerez Politikasi</a>, hizmet kurallari icin
+        <a href="/legal/terms.html"> Kullanim Kosullari</a> sayfasini inceleyebilirsiniz.
+      </p>
+    </main>
+  </body>
+</html>

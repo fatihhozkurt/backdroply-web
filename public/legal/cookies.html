@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Backdroply | Cerez Politikasi</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: rgba(15, 23, 42, 0.78);
+        --line: rgba(148, 163, 184, 0.24);
+        --text: #dbeafe;
+        --muted: #94a3b8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(900px 500px at 10% -10%, rgba(34, 211, 238, 0.15), transparent 60%),
+          radial-gradient(900px 500px at 100% 0%, rgba(59, 130, 246, 0.14), transparent 60%),
+          var(--bg);
+      }
+      main {
+        max-width: 860px;
+        margin: 40px auto;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+      }
+      h1, h2 { margin: 0 0 14px; }
+      h1 { font-size: 28px; }
+      h2 { margin-top: 22px; font-size: 18px; }
+      p, li { color: var(--muted); line-height: 1.6; }
+      ul { margin: 10px 0 0 18px; padding: 0; }
+      a { color: #7dd3fc; }
+      .meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Cerez Politikasi</h1>
+      <p class="meta">Son guncelleme: 8 Mart 2026</p>
+      <p>
+        Backdroply, hizmetin guvenli calismasi icin zorunlu cerezler kullanir.
+        Izin vermeniz halinde analitik, islevsel ve pazarlama cerezleri de kullanilir.
+      </p>
+
+      <h2>Cerez Kategorileri</h2>
+      <ul>
+        <li><strong>Zorunlu:</strong> Oturum guvenligi, CSRF korumasi ve temel islevler icin gereklidir.</li>
+        <li><strong>Analitik:</strong> Trafik ve kullanim olcumu icin kullanilir.</li>
+        <li><strong>Islevsel:</strong> Dil ve tercih ayarlarini hatirlamak icin kullanilir.</li>
+        <li><strong>Pazarlama:</strong> Kampanya performansi ve reklam hedefleme icin kullanilabilir.</li>
+      </ul>
+
+      <h2>Tercih Yonetimi</h2>
+      <p>
+        Cerez tercihleriniz, ana uygulamadaki <em>Cerez tercihleri</em> butonundan her zaman degistirilebilir.
+        Zorunlu cerezler devre disi birakilamaz.
+      </p>
+
+      <h2>Ilgili Metinler</h2>
+      <p>
+        Ek bilgi icin <a href="/legal/privacy.html">Gizlilik Politikasi</a> ve
+        <a href="/legal/terms.html"> Kullanim Kosullari</a> metinlerini inceleyebilirsiniz.
+      </p>
+    </main>
+  </body>
+</html>
