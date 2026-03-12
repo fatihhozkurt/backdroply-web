@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Sparkles, Wand } from "lucide-react";
+import { Download, Sparkles, Wand, X } from "lucide-react";
 import { api, toFormData } from "../lib/api";
 import { useI18n } from "../i18n";
 import MaskPainter from "../components/MaskPainter";
@@ -10,7 +10,7 @@ const MAX_VIDEO_SIZE_MB = 120;
 const MAX_VIDEO_SECONDS = 18;
 
 export default function StudioPage({ user, setTokenBalance, onLogout, booting = false }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [mediaType, setMediaType] = useState("video");
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -27,7 +27,23 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
   const [myMedia, setMyMedia] = useState([]);
   const [upsellOpen, setUpsellOpen] = useState(false);
   const [purchaseBusy, setPurchaseBusy] = useState(false);
+  const [billingPlans, setBillingPlans] = useState([]);
+  const [tokenCosts, setTokenCosts] = useState({ balanced: 1, ultra: 2 });
+  const [defaultUserTokens, setDefaultUserTokens] = useState(5);
   const videoMetaRef = useRef({ duration: 0 });
+
+  useEffect(() => {
+    api.get("/billing/catalog")
+      .then((res) => {
+        setBillingPlans(Array.isArray(res.data?.plans) ? res.data.plans : []);
+        setTokenCosts({
+          balanced: Number(res.data?.tokenCostBalanced || 1),
+          ultra: Number(res.data?.tokenCostUltra || 2)
+        });
+        setDefaultUserTokens(Number(res.data?.defaultUserTokens || 5));
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -46,6 +62,28 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
   }, [previewUrl]);
 
   const canProcess = Boolean(user && file && !busy);
+  const currentTokenCost = quality === "ultra" ? tokenCosts.ultra : tokenCosts.balanced;
+  const monthlyPlans = billingPlans.filter((plan) => Number(plan.durationDays || 0) < 365);
+  const yearlyPlans = billingPlans.filter((plan) => Number(plan.durationDays || 0) >= 365);
+
+  function closeUpsell() {
+    setUpsellOpen(false);
+  }
+
+  useEffect(() => {
+    if (!upsellOpen) {
+      return undefined;
+    }
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closeUpsell();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [upsellOpen]);
 
   async function onFileChange(nextFile) {
     setStatus("");
@@ -132,7 +170,9 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
       });
       setTokenBalance(res.data.tokenBalance);
       const storedNote = res.data.storedInMyMedia ? t.storedInMyMediaNote : "";
-      setStatus(t.completedStatus(res.data.qcSuspectFrames ?? 0, storedNote));
+      const spendNote = t.tokenSpentNote(Number(res.data.tokenCostUsed || currentTokenCost));
+      const wmNote = res.data.watermarkApplied ? t.watermarkAppliedNote : t.watermarkFreeNote;
+      setStatus(`${t.completedStatus(res.data.qcSuspectFrames ?? 0, storedNote)} | ${spendNote} | ${wmNote}`);
       setDownloadUrl(res.data.downloadUrl);
       setUpsellOpen(true);
       const hist = await api.get("/users/history");
@@ -283,8 +323,8 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
                   value={quality}
                   onChange={(e) => setQuality(e.target.value)}
                 >
-                  <option value="balanced">{t.balanced}</option>
-                  <option value="ultra">{t.ultra}</option>
+                  <option value="balanced">{`${t.balanced} (${tokenCosts.balanced} token)`}</option>
+                  <option value="ultra">{`${t.ultra} (${tokenCosts.ultra} token)`}</option>
                 </select>
               </label>
               <label className="block text-sm text-slate-300">
@@ -344,8 +384,9 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-sky-400 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Sparkles size={16} />
-              {busy ? t.running : t.process}
+              {busy ? t.running : `${t.process} • ${currentTokenCost} ◈`}
             </button>
+            {!busy && <div className="mt-2 text-xs text-slate-400">{t.tokenCostHint(currentTokenCost)}</div>}
             {status && <div className="mt-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-200">{status}</div>}
             {downloadUrl && (
               <button
@@ -436,31 +477,78 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
       )}
 
       {upsellOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5">
-            <div className="mb-2 text-lg font-semibold text-slate-100">{t.upsell}</div>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-md"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              closeUpsell();
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 p-5"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <div className="text-lg font-semibold text-slate-100">{t.upsell}</div>
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                onClick={closeUpsell}
+                aria-label={t.close}
+              >
+                <X size={14} />
+              </button>
+            </div>
             <div className="mb-4 text-xs text-slate-400">{t.paymentLegalNote}</div>
-            <div className="grid grid-cols-1 gap-2">
-              <button
-                type="button"
-                disabled={purchaseBusy}
-                onClick={() => buyPack("starter_30")}
-                className="rounded-lg bg-sky-400 px-3 py-2 text-sm font-semibold text-slate-950"
-              >
-                30 Token - 89 TRY
-              </button>
-              <button
-                type="button"
-                disabled={purchaseBusy}
-                onClick={() => buyPack("pro_80")}
-                className="rounded-lg bg-sky-500 px-3 py-2 text-sm font-semibold text-slate-950"
-              >
-                80 Token - 199 TRY
-              </button>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">{t.planTag}</div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {billingPlans.length === 0 && (
+                <div className="md:col-span-2 rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">
+                  {t.billingCatalogMissing}
+                </div>
+              )}
+              {monthlyPlans.map((plan) => (
+                <button
+                  key={plan.code}
+                  type="button"
+                  disabled={purchaseBusy}
+                  onClick={() => buyPack(plan.code)}
+                  className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
+                    plan.popular
+                      ? "border-sky-300/60 bg-sky-400/10 hover:border-sky-200"
+                      : "border-slate-700 bg-slate-900/70 hover:border-slate-500"
+                  }`}
+                >
+                  <div className="font-semibold text-slate-100">{lang === "tr" ? plan.labelTr : plan.labelEn}</div>
+                  <div className="mt-1 text-xs text-slate-300">{t.planMonthly} • {plan.tokens} token</div>
+                  <div className="mt-1 text-xs text-slate-400">{Number(plan.amountTry).toFixed(2)} TRY</div>
+                  {plan.watermarkFree && <div className="mt-2 text-[11px] text-emerald-300">{t.planWatermark}</div>}
+                </button>
+              ))}
+              {yearlyPlans.map((plan) => (
+                <button
+                  key={plan.code}
+                  type="button"
+                  disabled={purchaseBusy}
+                  onClick={() => buyPack(plan.code)}
+                  className="rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-3 py-3 text-left text-sm transition hover:border-emerald-300/60"
+                >
+                  <div className="font-semibold text-slate-100">{lang === "tr" ? plan.labelTr : plan.labelEn}</div>
+                  <div className="mt-1 text-xs text-slate-300">{t.planYearly} • {plan.tokens} token</div>
+                  <div className="mt-1 text-xs text-slate-400">{Number(plan.amountTry).toFixed(2)} TRY</div>
+                  {plan.watermarkFree && <div className="mt-2 text-[11px] text-emerald-300">{t.planWatermark}</div>}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400">
+              {t.starterTokensInfo(defaultUserTokens)}
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2">
               <button
                 type="button"
                 className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200"
-                onClick={() => setUpsellOpen(false)}
+                onClick={closeUpsell}
               >
                 {t.close}
               </button>

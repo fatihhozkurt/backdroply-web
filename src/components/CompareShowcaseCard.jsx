@@ -19,23 +19,75 @@ export default function CompareShowcaseCard({
   const [split, setSplit] = useState(56);
   const [dragging, setDragging] = useState(false);
   const [autoJump, setAutoJump] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const [videoFallback, setVideoFallback] = useState({ before: false, after: false });
   const hostRef = useRef(null);
+  const beforeVideoRef = useRef(null);
+  const afterVideoRef = useRef(null);
+  const jumpTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.35 }
+    );
+
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => {
-      if (dragging) {
+      if (dragging || !isVisible) {
         return;
       }
       setAutoJump(true);
       setSplit((prev) => (prev < 50 ? 82 : 18));
-      const jumpDone = setTimeout(() => setAutoJump(false), 460);
-      return () => clearTimeout(jumpDone);
+      if (jumpTimeoutRef.current) {
+        clearTimeout(jumpTimeoutRef.current);
+      }
+      jumpTimeoutRef.current = setTimeout(() => {
+        setAutoJump(false);
+        jumpTimeoutRef.current = null;
+      }, 460);
     }, 3400);
+
     return () => {
       clearInterval(id);
+      if (jumpTimeoutRef.current) {
+        clearTimeout(jumpTimeoutRef.current);
+        jumpTimeoutRef.current = null;
+      }
     };
-  }, [dragging]);
+  }, [dragging, isVisible]);
+
+  useEffect(() => {
+    if (kind !== "video") {
+      return undefined;
+    }
+
+    const videos = [beforeVideoRef.current, afterVideoRef.current].filter(Boolean);
+    videos.forEach((video) => {
+      if (isVisible) {
+        if (video.paused) {
+          void video.play().catch(() => {});
+        }
+      } else {
+        video.pause();
+      }
+    });
+
+    return () => {
+      videos.forEach((video) => video.pause());
+    };
+  }, [isVisible, kind]);
 
   function updateSplit(clientX) {
     const host = hostRef.current;
@@ -66,17 +118,18 @@ export default function CompareShowcaseCard({
 
       return (
         <video
+          ref={isBefore ? beforeVideoRef : afterVideoRef}
           autoPlay
           loop
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
           poster={poster}
           draggable={false}
           onLoadedData={(e) => {
             setVideoFallback((prev) => ({ ...prev, [side]: false }));
             const mediaEl = e.currentTarget;
-            if (mediaEl.paused) {
+            if (isVisible && mediaEl.paused) {
               void mediaEl.play().catch(() => {});
             }
           }}
@@ -107,10 +160,13 @@ export default function CompareShowcaseCard({
       <div className="mb-3 text-sm font-semibold text-slate-100">{title}</div>
       <div
         ref={hostRef}
-        className="group relative aspect-video cursor-ew-resize touch-none select-none overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-950 transition-transform duration-300 hover:scale-[1.005]"
+        className="group relative aspect-video cursor-ew-resize touch-pan-y select-none overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-950 transition-transform duration-300 hover:scale-[1.005]"
+        onDragStart={(e) => e.preventDefault()}
         onPointerDown={(e) => {
           e.preventDefault();
-          e.currentTarget.setPointerCapture(e.pointerId);
+          if (e.pointerType === "mouse") {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }
           setDragging(true);
           setAutoJump(false);
           updateSplit(e.clientX);
@@ -122,7 +178,9 @@ export default function CompareShowcaseCard({
           updateSplit(e.clientX);
         }}
         onPointerUp={(e) => {
-          e.currentTarget.releasePointerCapture(e.pointerId);
+          if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
           setDragging(false);
         }}
         onPointerCancel={() => setDragging(false)}

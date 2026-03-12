@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Brush, Download, SlidersHorizontal, Upload } from "lucide-react";
+import { Brush, Download, SlidersHorizontal, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useI18n } from "../i18n";
 
@@ -17,6 +17,20 @@ export default function GuideModal({ open, onClose }) {
       setIndex(0);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose?.();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   if (!open) {
     return null;
   }
@@ -30,13 +44,29 @@ export default function GuideModal({ open, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) {
+            onClose?.();
+          }
+        }}
       >
         <motion.div
           className="w-full max-w-xl rounded-3xl border border-sky-300/20 bg-gradient-to-br from-slate-900/95 to-slate-950/95 p-6 shadow-[0_35px_90px_rgba(2,6,23,.7)]"
           initial={{ y: 24, scale: 0.98, opacity: 0 }}
           animate={{ y: 0, scale: 1, opacity: 1 }}
+          onClick={(event) => event.stopPropagation()}
         >
-          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-sky-300/80">{t.guideTitle}</div>
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <div className="text-xs uppercase tracking-[0.18em] text-sky-300/80">{t.guideTitle}</div>
+            <button
+              type="button"
+              onClick={() => onClose?.()}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+              aria-label="Close guide"
+            >
+              <X size={14} />
+            </button>
+          </div>
           <div className="mb-4 text-xs text-slate-400">{t.guideSubtitle}</div>
           <div className="mb-4 inline-flex rounded-xl border border-slate-700 bg-slate-900/80 p-2 text-sky-200">
             <StepIcon size={18} />

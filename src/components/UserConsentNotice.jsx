@@ -1,4 +1,4 @@
-import { BarChart3, Cookie, Megaphone, Settings2, ShieldCheck } from "lucide-react";
+import { BarChart3, Cookie, Megaphone, Settings2, ShieldCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useI18n } from "../i18n";
 import {
@@ -16,16 +16,17 @@ const CATEGORY_META = {
   functional: { icon: Settings2 }
 };
 
-function PolicyLinks({ t }) {
+function PolicyLinks({ t, lang }) {
+  const legalQuery = `?lang=${lang}`;
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
-      <a href="/legal/cookies.html" target="_blank" rel="noreferrer" className="hover:text-sky-200">
+      <a href={`/legal/cookies.html${legalQuery}`} target="_blank" rel="noreferrer" className="hover:text-sky-200">
         {t.cookiePolicy}
       </a>
-      <a href="/legal/privacy.html" target="_blank" rel="noreferrer" className="hover:text-sky-200">
+      <a href={`/legal/privacy.html${legalQuery}`} target="_blank" rel="noreferrer" className="hover:text-sky-200">
         {t.privacyPolicy}
       </a>
-      <a href="/legal/terms.html" target="_blank" rel="noreferrer" className="hover:text-sky-200">
+      <a href={`/legal/terms.html${legalQuery}`} target="_blank" rel="noreferrer" className="hover:text-sky-200">
         {t.termsOfUse}
       </a>
     </div>
@@ -34,7 +35,7 @@ function PolicyLinks({ t }) {
 
 function ConsentToggle({ checked, disabled, label, desc, icon: Icon, onChange }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
+    <div className="rounded-xl border border-slate-800/80 bg-slate-900/70 p-3 shadow-[0_8px_24px_rgba(2,6,23,.35)]">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2">
           <span className="mt-0.5 rounded-md bg-slate-800 p-1 text-sky-200">
@@ -49,7 +50,7 @@ function ConsentToggle({ checked, disabled, label, desc, icon: Icon, onChange })
           type="button"
           disabled={disabled}
           onClick={onChange}
-          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border transition ${
+          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border transition cursor-pointer ${
             checked
               ? "border-sky-300/50 bg-sky-400/40"
               : "border-slate-600 bg-slate-800"
@@ -68,12 +69,96 @@ function ConsentToggle({ checked, disabled, label, desc, icon: Icon, onChange })
   );
 }
 
+function LegalChip({ href, children }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center rounded-full border border-slate-700/90 bg-slate-900/70 px-2.5 py-1 text-[11px] text-slate-300 transition hover:border-slate-500 hover:text-sky-200"
+    >
+      {children}
+    </a>
+  );
+}
+
+function BannerActions({ t, onAcceptAll, onRejectOptional, onOpenPrefs }) {
+  return (
+    <div className="mt-4 border-t border-slate-800/80 pt-3">
+      <div className="mx-auto grid w-full max-w-[760px] grid-cols-1 gap-2 sm:grid-cols-3">
+      <button
+        type="button"
+        className="inline-flex h-10 w-full cursor-pointer items-center justify-center whitespace-nowrap rounded-lg border border-slate-600 bg-slate-900/85 px-4 text-sm font-medium text-slate-200 transition hover:border-slate-400"
+        onClick={onOpenPrefs}
+      >
+        {t.cookieManage}
+      </button>
+      <button
+        type="button"
+        className="inline-flex h-10 w-full cursor-pointer items-center justify-center whitespace-nowrap rounded-lg border border-slate-600 bg-slate-900/85 px-4 text-sm font-medium text-slate-200 transition hover:border-slate-400"
+        onClick={onRejectOptional}
+      >
+        {t.cookieRejectAll}
+      </button>
+      <button
+        type="button"
+        className="inline-flex h-10 w-full cursor-pointer items-center justify-center whitespace-nowrap rounded-lg bg-gradient-to-r from-cyan-300 to-sky-400 px-4 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+        onClick={onAcceptAll}
+      >
+        {t.cookieAcceptAll}
+      </button>
+      </div>
+    </div>
+  );
+}
+
+function ActionButton({
+  primary = false,
+  onClick,
+  children
+}) {
+  return (
+    <button
+      type="button"
+      className={primary
+        ? "inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-gradient-to-r from-cyan-300 to-sky-400 px-4 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+        : "inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-slate-600 bg-slate-900 px-4 text-sm font-medium text-slate-200 transition hover:border-slate-400"
+      }
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ModalActions({ t, onSavePreferences, onRejectOptional, onAcceptAll, onClose }) {
+  return (
+    <div className="mt-5 border-t border-slate-800/80 pt-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <ActionButton onClick={onClose}>{t.close}</ActionButton>
+        <ActionButton onClick={onRejectOptional}>{t.cookieRejectAll}</ActionButton>
+        <ActionButton onClick={onAcceptAll}>{t.cookieAcceptAll}</ActionButton>
+        <ActionButton primary onClick={onSavePreferences}>{t.cookieSavePrefs}</ActionButton>
+      </div>
+    </div>
+  );
+}
+
 export default function UserConsentNotice() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [hydrated, setHydrated] = useState(false);
   const [bannerOpen, setBannerOpen] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [consent, setConsent] = useState(() => normalizeConsent());
+
+  function closePreferences() {
+    if (readConsent()) {
+      setPrefsOpen(false);
+      return;
+    }
+    setPrefsOpen(false);
+    setBannerOpen(true);
+  }
 
   useEffect(() => {
     const existing = readConsent();
@@ -96,6 +181,21 @@ export default function UserConsentNotice() {
     window.addEventListener(OPEN_CONSENT_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_CONSENT_EVENT, onOpen);
   }, []);
+
+  useEffect(() => {
+    if (!prefsOpen) {
+      return undefined;
+    }
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closePreferences();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [prefsOpen]);
 
   function persist(nextConsent) {
     const saved = writeConsent(nextConsent);
@@ -139,51 +239,61 @@ export default function UserConsentNotice() {
   return (
     <>
       {bannerOpen && (
-        <div className="fixed bottom-4 left-1/2 z-50 w-[min(96%,780px)] -translate-x-1/2 rounded-2xl border border-slate-700 bg-slate-900/95 p-4 shadow-2xl backdrop-blur-lg sm:p-5">
-          <div className="flex items-start gap-3">
-            <span className="rounded-xl border border-slate-700 bg-slate-900/70 p-2 text-sky-200">
-              <Cookie size={16} />
-            </span>
-            <div>
-              <div className="text-sm font-semibold text-slate-100">{t.cookieBannerTitle}</div>
-              <p className="mt-1 text-xs leading-relaxed text-slate-300">{t.cookieBannerText}</p>
-              <PolicyLinks t={t} />
+        <div className="fixed bottom-4 left-1/2 z-50 w-[min(96%,820px)] -translate-x-1/2 rounded-3xl border border-slate-700/80 bg-gradient-to-b from-slate-900/95 to-[#040f24]/95 p-4 shadow-[0_26px_80px_rgba(2,6,23,.75)] backdrop-blur-lg sm:p-5">
+          <div className="min-w-0">
+            <div className="flex items-start gap-3">
+              <span className="rounded-xl border border-slate-700 bg-slate-900/70 p-2 text-sky-200">
+                <Cookie size={16} />
+              </span>
+              <div className="min-w-0">
+                <div className="text-base font-semibold text-slate-100">{t.cookieBannerTitle}</div>
+                <p className="mt-1 text-xs leading-relaxed text-slate-300">{t.cookieBannerText}</p>
+              </div>
             </div>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-slate-400"
-              onClick={rejectOptional}
-            >
-              {t.cookieRejectAll}
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-slate-400"
-              onClick={() => {
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <LegalChip href={`/legal/cookies.html?lang=${lang}`}>{t.cookiePolicy}</LegalChip>
+              <LegalChip href={`/legal/privacy.html?lang=${lang}`}>{t.privacyPolicy}</LegalChip>
+              <LegalChip href={`/legal/terms.html?lang=${lang}`}>{t.termsOfUse}</LegalChip>
+            </div>
+            <BannerActions
+              t={t}
+              onAcceptAll={acceptAll}
+              onRejectOptional={rejectOptional}
+              onOpenPrefs={() => {
                 setPrefsOpen(true);
                 setBannerOpen(false);
               }}
-            >
-              {t.cookieManage}
-            </button>
-            <button
-              type="button"
-              className="rounded-lg bg-sky-400 px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-sky-300"
-              onClick={acceptAll}
-            >
-              {t.cookieAcceptAll}
-            </button>
+            />
           </div>
         </div>
       )}
 
       {prefsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-3xl border border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950 p-5 shadow-[0_30px_90px_rgba(2,6,23,.7)] sm:p-6">
-            <div className="mb-1 text-lg font-semibold text-slate-100">{t.cookiePrefsTitle}</div>
-            <p className="mb-4 text-xs text-slate-300">{t.cookiePrefsDesc}</p>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              closePreferences();
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-2xl rounded-3xl border border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950 p-5 shadow-[0_30px_90px_rgba(2,6,23,.7)] sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-1 flex items-start justify-between gap-3">
+              <div>
+                <div className="text-lg font-semibold text-slate-100">{t.cookiePrefsTitle}</div>
+                <p className="mt-1 text-xs text-slate-300">{t.cookiePrefsDesc}</p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex cursor-pointer items-center rounded-lg border border-slate-700 bg-slate-900/80 p-1.5 text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                onClick={closePreferences}
+              >
+                <X size={14} />
+              </button>
+            </div>
 
             <div className="space-y-2">
               <ConsentToggle
@@ -216,58 +326,17 @@ export default function UserConsentNotice() {
               />
             </div>
 
-            <PolicyLinks t={t} />
+            <PolicyLinks t={t} lang={lang} />
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-slate-400"
-                onClick={rejectOptional}
-              >
-                {t.cookieRejectAll}
-              </button>
-              <button
-                type="button"
-                className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-slate-400"
-                onClick={acceptAll}
-              >
-                {t.cookieAcceptAll}
-              </button>
-              <button
-                type="button"
-                className="rounded-lg bg-sky-400 px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-sky-300"
-                onClick={savePreferences}
-              >
-                {t.cookieSavePrefs}
-              </button>
-              <button
-                type="button"
-                className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300"
-                onClick={() => {
-                  if (readConsent()) {
-                    setPrefsOpen(false);
-                    return;
-                  }
-                  setPrefsOpen(false);
-                  setBannerOpen(true);
-                }}
-              >
-                {t.close}
-              </button>
-            </div>
+            <ModalActions
+              t={t}
+              onSavePreferences={savePreferences}
+              onRejectOptional={rejectOptional}
+              onAcceptAll={acceptAll}
+              onClose={closePreferences}
+            />
           </div>
         </div>
-      )}
-
-      {!bannerOpen && (
-        <button
-          type="button"
-          className="fixed bottom-4 left-4 z-40 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/85 px-3 py-2 text-[11px] text-slate-200 shadow-lg backdrop-blur transition hover:border-slate-500"
-          onClick={() => setPrefsOpen(true)}
-        >
-          <Cookie size={14} />
-          {t.cookieManage}
-        </button>
       )}
     </>
   );
