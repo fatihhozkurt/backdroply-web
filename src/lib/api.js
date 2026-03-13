@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api
 export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
+  withXSRFToken: true,
   xsrfCookieName: "XSRF-TOKEN",
   xsrfHeaderName: "X-XSRF-TOKEN"
 });

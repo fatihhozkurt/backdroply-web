@@ -65,12 +65,15 @@ export default function App() {
 
   async function onLogout() {
     try {
+      // Refresh CSRF token to ensure cross-origin logout carries valid XSRF header.
+      await api.get("/auth/csrf").catch(() => {});
       await api.post("/auth/logout");
-    } catch {
-      // Cookie cleanup failures should not block local logout.
+      setUser(null);
+      setTokenBalance(0);
+    } catch (err) {
+      // Keep state untouched if logout failed; otherwise refresh would appear inconsistent.
+      console.error("Logout failed", err);
     }
-    setUser(null);
-    setTokenBalance(0);
   }
 
   return (
