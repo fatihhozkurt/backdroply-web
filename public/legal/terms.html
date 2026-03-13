@@ -52,40 +52,51 @@
         localStorage.setItem("clipcut_lang", lang);
         document.documentElement.lang = lang;
 
+        const supportEmail = "support@backdroply.app";
+
         const pages = {
           tr: {
             title: "Backdroply | Kullanım Koşulları",
             html: `
               <h1>Kullanım Koşulları</h1>
-              <p class="meta">Son güncelleme: 12 Mart 2026</p>
-              <p>Backdroply hizmetini kullanarak bu koşulları kabul etmiş olursun. Bu metin bir ürün kullanım sözleşmesi (EULA benzeri) niteliğinde genel şartları özetler.</p>
-              <h2>1. Hizmetin Kapsamı</h2>
-              <p>Backdroply; görsel/video arka plan ayrıştırma, çıktı üretimi, token bazlı kullanım ve isteğe bağlı geçmiş/media saklama özellikleri sunar.</p>
+              <p class="meta">Son güncelleme: 13 Mart 2026</p>
+              <p>Backdroply hizmetini kullanarak bu koşulları kabul etmiş olursun. Bu metin, ürün kullanımına ilişkin genel çerçeveyi açıklar.</p>
+
+              <h2>1. Hizmet Kapsamı</h2>
+              <p>Backdroply; görsel/video arka plan ayrıştırma, çıktı üretimi, token bazlı kullanım, geçmiş ve isteğe bağlı medya saklama özellikleri sunar.</p>
+
               <h2>2. Hesap ve Erişim</h2>
               <ul>
                 <li>Kimlik doğrulama Google ile yapılır.</li>
                 <li>Hesap güvenliğini korumak kullanıcının sorumluluğundadır.</li>
-                <li>Hesap silme işlemi kullanıcı talebiyle uygulama içinden başlatılabilir.</li>
+                <li>Hesap silme işlemi uygulama içinden başlatılabilir.</li>
               </ul>
+
               <h2>3. İçerik ve Lisans Sorumluluğu</h2>
               <ul>
-                <li>Yüklediğin medya üzerinde gerekli kullanım haklarına sahip olmalısın.</li>
-                <li>Telif hakkı, marka hakkı veya üçüncü taraf hak ihlali oluşturacak içerikler yüklenmemelidir.</li>
+                <li>Yüklediğin içerik üzerinde gerekli kullanım haklarına sahip olmalısın.</li>
+                <li>Telif, marka veya üçüncü taraf haklarını ihlal eden içerik yüklenmemelidir.</li>
               </ul>
+
               <h2>4. Yasak Kullanımlar</h2>
               <ul>
                 <li>Sisteme zarar vermeye yönelik script/payload denemeleri.</li>
-                <li>Rate-limit, eşzamanlı işlem veya güvenlik kurallarını aşmaya yönelik eylemler.</li>
-                <li>Hukuka aykırı, yanıltıcı veya kötüye kullanım amaçlı içerik üretimi.</li>
+                <li>Rate-limit, güvenlik veya eşzamanlı işlem sınırlarını aşmaya yönelik eylemler.</li>
+                <li>Hukuka aykırı ya da kötüye kullanım amacı taşıyan faaliyetler.</li>
               </ul>
+
               <h2>5. Ödeme, Plan ve Token</h2>
-              <p>Ücretli planlar belirli token kotası sağlar. Plan içeriği, fiyat ve yenileme koşulları satın alma ekranında belirtilir. Ödeme onayı olmadan token yüklenmez.</p>
+              <p>Ücretli planlar belirli token kotası sağlar. Plan içeriği, fiyat ve yenileme koşulları satın alma akışında belirtilir. Ödeme onayı olmadan token yüklenmez.</p>
+
               <h2>6. Filigran Politikası</h2>
-              <p>Filigran davranışı plan seviyesine göre değişebilir. Ücretsiz kullanımda filigranlı çıktı, ücretli planlarda filigransız çıktı sunulabilir.</p>
-              <h2>7. Hizmet Seviyesi ve Sorumluluk Sınırı</h2>
-              <p>Arka plan kaldırma çıktıları model tahmini içerir; her sahnede mutlak kusursuz sonuç garanti edilmez. Teknik kesinti ve üçüncü taraf kaynaklı sorunlarda dolaylı zararlardan sorumluluk sınırlıdır.</p>
-              <h2>8. Hukuki Not</h2>
-              <p>Bu metin genel bilgilendirme içerir; hukuki danışmanlık yerine geçmez. Ticari operasyonda yerel mevzuata göre profesyonel hukuk danışmanlığı alınmalıdır.</p>
+              <p>Filigran davranışı plan seviyesine göre değişebilir. Ücretsiz kullanımda filigranlı, bazı ücretli planlarda filigransız çıktı sunulabilir.</p>
+
+              <h2>7. Sorumluluk Sınırı</h2>
+              <p>Arka plan kaldırma çıktıları model tahminine dayanır; her sahnede mutlak kusursuzluk garanti edilmez. Teknik kesinti ve üçüncü taraf sorunlarında dolaylı zararlar için sorumluluk sınırlıdır.</p>
+
+              <h2>8. İletişim</h2>
+              <p>Destek, iade veya iptal talepleri için <a href="/contact">İletişim</a> sayfasını veya <a href="mailto:${supportEmail}">${supportEmail}</a> adresini kullanabilirsin.</p>
+
               <h2>9. İlgili Metinler</h2>
               <p><a href="/legal/privacy.html?lang=tr">Gizlilik Politikası</a> ve <a href="/legal/cookies.html?lang=tr">Çerez Politikası</a> metinlerini inceleyebilirsin.</p>
             `
@@ -94,35 +105,44 @@
             title: "Backdroply | Terms of Use",
             html: `
               <h1>Terms of Use</h1>
-              <p class="meta">Last updated: March 12, 2026</p>
-              <p>By using Backdroply, you agree to these terms. This document summarizes the general product usage agreement (EULA-style framework).</p>
+              <p class="meta">Last updated: March 13, 2026</p>
+              <p>By using Backdroply, you agree to these terms. This document explains the general framework of service usage.</p>
+
               <h2>1. Service Scope</h2>
-              <p>Backdroply provides image/video background removal, output generation, token-based usage and optional history/media retention features.</p>
+              <p>Backdroply provides image/video background removal, output generation, token-based usage, history and optional media retention features.</p>
+
               <h2>2. Account and Access</h2>
               <ul>
                 <li>Authentication is handled through Google sign-in.</li>
-                <li>Users are responsible for maintaining account security.</li>
-                <li>Account deletion can be initiated from within the application.</li>
+                <li>Users are responsible for account security.</li>
+                <li>Account deletion can be initiated from within the app.</li>
               </ul>
+
               <h2>3. Content and License Responsibility</h2>
               <ul>
-                <li>You must hold sufficient rights for any uploaded media.</li>
+                <li>You must hold sufficient rights for uploaded media.</li>
                 <li>You must not upload content that infringes copyrights, trademarks or third-party rights.</li>
               </ul>
+
               <h2>4. Prohibited Use</h2>
               <ul>
-                <li>Attempts to harm infrastructure via scripts/payloads.</li>
-                <li>Attempts to bypass rate limits, concurrency limits or security controls.</li>
-                <li>Unlawful, misleading or abusive content generation.</li>
+                <li>Attempts to harm infrastructure via scripts or malicious payloads.</li>
+                <li>Attempts to bypass rate limits, security rules or concurrency limits.</li>
+                <li>Unlawful or abusive activities.</li>
               </ul>
+
               <h2>5. Payments, Plans and Tokens</h2>
-              <p>Paid plans provide defined token quotas. Plan content, pricing and renewal terms are disclosed during checkout. Tokens are not credited before payment confirmation.</p>
+              <p>Paid plans provide defined token quotas. Plan content, pricing and renewal terms are disclosed during checkout. Tokens are credited only after payment confirmation.</p>
+
               <h2>6. Watermark Policy</h2>
-              <p>Watermark behavior may vary by plan. Free usage may include watermark exports while paid plans may include watermark-free exports.</p>
-              <h2>7. Service Level and Limitation of Liability</h2>
-              <p>Background removal is model-based and cannot be guaranteed as perfect in every scene. Liability for indirect damages is limited in cases of technical outages or third-party failures.</p>
-              <h2>8. Legal Notice</h2>
-              <p>This document is general information and not legal advice. For commercial operation, obtain professional legal counsel under your jurisdiction.</p>
+              <p>Watermark behavior may vary by plan. Free usage may include watermark exports while some paid plans may include watermark-free exports.</p>
+
+              <h2>7. Limitation of Liability</h2>
+              <p>Background removal is model-based and cannot be guaranteed as perfect in every scene. Liability for indirect damages is limited in case of technical outages or third-party failures.</p>
+
+              <h2>8. Contact</h2>
+              <p>For support, refund or cancellation requests, use the <a href="/contact">Contact</a> page or <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+
               <h2>9. Related Documents</h2>
               <p>Please review the <a href="/legal/privacy.html?lang=en">Privacy Policy</a> and <a href="/legal/cookies.html?lang=en">Cookie Policy</a>.</p>
             `

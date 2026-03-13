@@ -6,6 +6,7 @@ React + Tailwind frontend for the Backdroply SaaS product.
 
 - Landing page (before/after comparison, onboarding flow)
 - Studio page (image/video background removal workflow)
+- Contact page (`/contact`) with support/KVKK request form
 - Google sign-in (web), token display, history/my-media UI
 - Cookie consent and legal links
 - TR/EN language switch

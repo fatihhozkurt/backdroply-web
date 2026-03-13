@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import TopBar from "./components/TopBar";
 import UserConsentNotice from "./components/UserConsentNotice";
+import GlobalFooter from "./components/GlobalFooter";
 import { useI18n } from "./i18n";
 import { api } from "./lib/api";
 import LandingPage from "./pages/LandingPage";
+import ContactPage from "./pages/ContactPage";
 import StudioPage from "./pages/StudioPage";
 
 export default function App() {
@@ -100,7 +102,9 @@ export default function App() {
             />
           }
         />
+        <Route path="/contact" element={<ContactPage />} />
       </Routes>
+      <GlobalFooter />
       <UserConsentNotice />
     </div>
   );

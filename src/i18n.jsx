@@ -54,6 +54,7 @@ const dictionaries = {
     footerCookie: "Çerez Politikası",
     footerPrivacy: "Gizlilik Politikası",
     footerTerms: "Kullanım Koşulları",
+    footerContact: "İletişim",
     cookieBannerTitle: "Çerez tercihleri",
     cookieBannerText:
       "Bu site zorunlu çerezlerin yanında analitik, işlevsel ve pazarlama çerezleri kullanabilir. Kabul et, reddet veya tercihlerini yönet.",
@@ -188,6 +189,7 @@ const dictionaries = {
     footerCookie: "Cookie Policy",
     footerPrivacy: "Privacy Policy",
     footerTerms: "Terms of Use",
+    footerContact: "Contact",
     cookieBannerTitle: "Cookie preferences",
     cookieBannerText:
       "This site uses essential cookies and may use analytics, functional and marketing cookies. You can accept, reject or manage your preferences.",

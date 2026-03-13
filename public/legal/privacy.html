@@ -24,7 +24,7 @@
           var(--bg);
       }
       main {
-        max-width: 900px;
+        max-width: 920px;
         margin: 40px auto;
         padding: 28px;
         border: 1px solid var(--line);
@@ -52,33 +52,42 @@
         localStorage.setItem("clipcut_lang", lang);
         document.documentElement.lang = lang;
 
+        const supportEmail = "support@backdroply.app";
+        const kvkkEmail = "kvkk@backdroply.app";
+
         const pages = {
           tr: {
             title: "Backdroply | Gizlilik Politikası",
             html: `
               <h1>Gizlilik Politikası</h1>
-              <p class="meta">Son güncelleme: 12 Mart 2026</p>
-              <p>Bu metin, Backdroply üzerinde işlenen kişisel verilerin hangi amaçlarla kullanıldığını, ne kadar süre saklandığını ve kullanıcı haklarının nasıl kullanılabileceğini özetler.</p>
+              <p class="meta">Son güncelleme: 13 Mart 2026</p>
+              <p>Bu politika, Backdroply üzerinde işlenen kişisel verilerin hangi amaçlarla kullanıldığını, ne kadar süre saklandığını ve kullanıcı haklarının nasıl kullanılabileceğini özetler.</p>
+
               <h2>1. İşlenen Veri Türleri</h2>
               <ul>
                 <li>Google ile giriş kapsamında kimlik doğrulama için gerekli temel profil verileri.</li>
-                <li>Yüklediğin medya dosyaları ve işleme parametreleri.</li>
+                <li>Yüklenen medya dosyaları, işleme parametreleri ve işlem çıktıları.</li>
                 <li>İşlem geçmişi, token tüketimi ve tercihe bağlı My Media kayıtları.</li>
-                <li>Güvenlik logları, rate-limit kayıtları ve webhook doğrulama verileri.</li>
+                <li>Güvenlik logları, hız sınırlama kayıtları ve webhook doğrulama kayıtları.</li>
               </ul>
+
               <h2>2. İşleme Amaçları</h2>
               <ul>
-                <li>Arka plan kaldırma hizmetini sunmak ve sonuç üretmek.</li>
+                <li>Arka plan kaldırma hizmetini sunmak ve çıktı üretmek.</li>
                 <li>Hizmet güvenliğini sağlamak, kötüye kullanımı önlemek.</li>
-                <li>Ödeme doğrulama, token yükleme ve işlem denetimi yürütmek.</li>
-                <li>Açık rıza halinde analiz ve ürün geliştirme ölçümü yapmak.</li>
+                <li>Ödeme doğrulama, token yükleme ve denetim süreçlerini yürütmek.</li>
+                <li>Açık rıza halinde analitik ölçüm ve ürün iyileştirme yapmak.</li>
               </ul>
+
               <h2>3. Saklama ve Silme</h2>
-              <p>My Media özelliği açıksa en fazla 10 çıktı tutulur; yeni kayıt geldiğinde en eski kayıt silinir. Hesabını sildiğinde kimliğe bağlı erişim sonlandırılır.</p>
-              <h2>4. Aktarım ve Üçüncü Taraflar</h2>
-              <p>Kimlik doğrulama, ödeme, e-posta ve depolama altyapılarında sözleşmeli teknik sağlayıcılar kullanılabilir. Bu aktarımlar hizmetin sunumu ve güvenlik amacıyla sınırlıdır.</p>
-              <h2>5. Kullanıcı Hakları</h2>
-              <p>Veri işleme faaliyetleri hakkında bilgi talep etme, düzeltme/silme isteme ve çerez tercihlerini güncelleme hakların bulunur.</p>
+              <p>My Media özelliği açıksa en fazla 10 çıktı tutulur; yeni kayıt geldiğinde en eski kayıt silinir. Hesap silme talebinde kimliğe bağlı erişim kapatılır ve veri minimizasyonu ilkesiyle temizleme işlemleri uygulanır.</p>
+
+              <h2>4. Veri Aktarımı</h2>
+              <p>Kimlik doğrulama, ödeme, e-posta ve depolama altyapılarında sözleşmeli teknik sağlayıcılar kullanılabilir. Aktarımlar yalnızca hizmet sunumu ve güvenlik amacıyla sınırlıdır.</p>
+
+              <h2>5. Veri Sahibi Başvuru Hakkı (KVKK)</h2>
+              <p>6698 sayılı Kanun kapsamında başvuru, düzeltme, silme ve bilgi talebi için <a href="mailto:${kvkkEmail}">${kvkkEmail}</a> adresini kullanabilirsin. Destek talepleri için <a href="mailto:${supportEmail}">${supportEmail}</a> ve uygulamadaki <a href="/contact">İletişim</a> formu aktiftir.</p>
+
               <h2>6. İlgili Metinler</h2>
               <p><a href="/legal/cookies.html?lang=tr">Çerez Politikası</a> ve <a href="/legal/terms.html?lang=tr">Kullanım Koşulları</a> metinlerini de inceleyebilirsin.</p>
             `
@@ -87,28 +96,34 @@
             title: "Backdroply | Privacy Policy",
             html: `
               <h1>Privacy Policy</h1>
-              <p class="meta">Last updated: March 12, 2026</p>
-              <p>This policy summarizes how Backdroply processes personal data, for what purposes it is used, how long it is retained, and how users can exercise their rights.</p>
+              <p class="meta">Last updated: March 13, 2026</p>
+              <p>This policy summarizes what personal data is processed by Backdroply, why it is processed, how long it is retained, and how users can exercise their rights.</p>
+
               <h2>1. Data Categories</h2>
               <ul>
                 <li>Basic profile data required for authentication via Google sign-in.</li>
-                <li>Uploaded media files and processing parameters.</li>
+                <li>Uploaded media files, processing parameters and output files.</li>
                 <li>Processing history, token consumption and optional My Media records.</li>
-                <li>Security logs, rate-limit records and webhook verification data.</li>
+                <li>Security logs, rate-limit records and webhook verification logs.</li>
               </ul>
+
               <h2>2. Processing Purposes</h2>
               <ul>
                 <li>To provide background removal and generate outputs.</li>
                 <li>To ensure service security and prevent abuse.</li>
-                <li>To verify payments, load tokens and maintain auditability.</li>
-                <li>To run analytics and product improvement measurements with consent.</li>
+                <li>To verify payments, credit tokens and maintain auditability.</li>
+                <li>To run analytics and product improvements based on consent.</li>
               </ul>
+
               <h2>3. Retention and Deletion</h2>
-              <p>If My Media is enabled, up to 10 outputs are retained and the oldest entry is evicted first. When your account is deleted, identity-bound access is terminated.</p>
-              <h2>4. Sharing and Processors</h2>
-              <p>Identity, payment, email and storage infrastructure may involve contracted technical providers. Transfers are limited to service delivery and security purposes.</p>
-              <h2>5. User Rights</h2>
-              <p>You may request information about processing, request correction/deletion, and update cookie preferences at any time.</p>
+              <p>If My Media is enabled, up to 10 outputs are retained and the oldest entry is evicted first. For account deletion requests, identity-bound access is terminated and cleanup is performed under data minimization principles.</p>
+
+              <h2>4. Data Sharing</h2>
+              <p>Identity, payment, email and storage infrastructure may involve contracted technical processors. Transfers are limited to service delivery and security purposes.</p>
+
+              <h2>5. Data Subject Requests</h2>
+              <p>For data access, correction or deletion requests, contact <a href="mailto:${kvkkEmail}">${kvkkEmail}</a>. For support requests, use <a href="mailto:${supportEmail}">${supportEmail}</a> or the in-app <a href="/contact">Contact</a> form.</p>
+
               <h2>6. Related Documents</h2>
               <p>Please also review the <a href="/legal/cookies.html?lang=en">Cookie Policy</a> and <a href="/legal/terms.html?lang=en">Terms of Use</a>.</p>
             `

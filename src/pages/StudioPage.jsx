@@ -11,6 +11,8 @@ const MAX_VIDEO_SECONDS = 18;
 
 export default function StudioPage({ user, setTokenBalance, onLogout, booting = false }) {
   const { t, lang } = useI18n();
+  const billingSupportLine = t.billingSupportLine || (lang === "tr" ? "Destek/İade/İptal talepleri için iletişim kanalı aktiftir:" : "Support/refund/cancellation channel is active:");
+  const footerContactLabel = t.footerContact || (lang === "tr" ? "İletişim" : "Contact");
   const [mediaType, setMediaType] = useState("video");
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -23,6 +25,7 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
+  const [activeJobId, setActiveJobId] = useState(null);
   const [history, setHistory] = useState([]);
   const [myMedia, setMyMedia] = useState([]);
   const [upsellOpen, setUpsellOpen] = useState(false);
@@ -153,6 +156,7 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
     if (!canProcess) {
       return;
     }
+    let keepBusy = false;
     setBusy(true);
     setStatus("");
     setDownloadUrl("");
@@ -169,21 +173,105 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
         headers: { "Content-Type": "multipart/form-data" }
       });
       setTokenBalance(res.data.tokenBalance);
-      const storedNote = res.data.storedInMyMedia ? t.storedInMyMediaNote : "";
-      const spendNote = t.tokenSpentNote(Number(res.data.tokenCostUsed || currentTokenCost));
-      const wmNote = res.data.watermarkApplied ? t.watermarkAppliedNote : t.watermarkFreeNote;
-      setStatus(`${t.completedStatus(res.data.qcSuspectFrames ?? 0, storedNote)} | ${spendNote} | ${wmNote}`);
-      setDownloadUrl(res.data.downloadUrl);
-      setUpsellOpen(true);
-      const hist = await api.get("/users/history");
-      setHistory(hist.data);
-      const mediaRes = await api.get("/media/my-media");
-      setMyMedia(mediaRes.data);
+      const state = String(res.data.status || "").toLowerCase();
+      if (state === "success") {
+        await applySuccessStatus(res.data);
+      } else if (state === "failed") {
+        setStatus(res.data.errorMessage || t.processFailed);
+        setBusy(false);
+      } else {
+        keepBusy = true;
+        setActiveJobId(res.data.jobId);
+        const eta = Number(res.data.etaSeconds || 0);
+        const queuePos = Number(res.data.queuePosition || 0);
+        const etaText = eta > 0 ? (lang === "tr" ? `Tahmini ~${eta} sn` : `Estimated ~${eta}s`) : "";
+        const queueText = lang === "tr"
+          ? `Kuyrukta (#${queuePos + 1})`
+          : `Queued (#${queuePos + 1})`;
+        setStatus([queueText, etaText].filter(Boolean).join(" | "));
+      }
     } catch (err) {
       setStatus(err?.response?.data?.error || t.processFailed);
+      setActiveJobId(null);
     } finally {
-      setBusy(false);
+      if (!keepBusy) {
+        setBusy(false);
+      }
     }
+  }
+
+  useEffect(() => {
+    if (!activeJobId || !user) {
+      return undefined;
+    }
+    let cancelled = false;
+
+    async function pollJobStatus() {
+      try {
+        const res = await api.get(`/media/jobs/${activeJobId}/status`);
+        if (cancelled) {
+          return;
+        }
+        if (typeof res.data?.tokenBalance === "number") {
+          setTokenBalance(res.data.tokenBalance);
+        }
+        const state = String(res.data?.status || "").toLowerCase();
+        if (state === "success") {
+          await applySuccessStatus(res.data);
+          setActiveJobId(null);
+          setBusy(false);
+          return;
+        }
+        if (state === "failed") {
+          setStatus(res.data?.errorMessage || t.processFailed);
+          setActiveJobId(null);
+          setBusy(false);
+          return;
+        }
+        const eta = Number(res.data?.etaSeconds || 0);
+        const queuePos = Number(res.data?.queuePosition || 0);
+        if (state === "processing") {
+          const etaText = eta > 0 ? (lang === "tr" ? `Tahmini ~${eta} sn` : `Estimated ~${eta}s`) : "";
+          setStatus([lang === "tr" ? "İşleniyor" : "Processing", etaText].filter(Boolean).join(" | "));
+          return;
+        }
+        const etaText = eta > 0 ? (lang === "tr" ? `Tahmini ~${eta} sn` : `Estimated ~${eta}s`) : "";
+        const queueText = lang === "tr"
+          ? `Kuyrukta (#${queuePos + 1})`
+          : `Queued (#${queuePos + 1})`;
+        setStatus([queueText, etaText].filter(Boolean).join(" | "));
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+        setStatus(err?.response?.data?.error || t.processFailed);
+        setActiveJobId(null);
+        setBusy(false);
+      }
+    }
+
+    void pollJobStatus();
+    const intervalId = window.setInterval(() => {
+      void pollJobStatus();
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeJobId, user, lang, t, setTokenBalance]);
+
+  async function applySuccessStatus(payload) {
+    const storedNote = payload.storedInMyMedia ? t.storedInMyMediaNote : "";
+    const spendNote = t.tokenSpentNote(Number(payload.tokenCostUsed || currentTokenCost));
+    const wmNote = payload.watermarkApplied ? t.watermarkAppliedNote : t.watermarkFreeNote;
+    setStatus(`${t.completedStatus(payload.qcSuspectFrames ?? 0, storedNote)} | ${spendNote} | ${wmNote}`);
+    setDownloadUrl(payload.downloadUrl || "");
+    setUpsellOpen(true);
+    const hist = await api.get("/users/history");
+    setHistory(hist.data);
+    const mediaRes = await api.get("/media/my-media");
+    setMyMedia(mediaRes.data);
   }
 
   async function buyPack(packCode) {
@@ -500,7 +588,13 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
                 <X size={14} />
               </button>
             </div>
-            <div className="mb-4 text-xs text-slate-400">{t.paymentLegalNote}</div>
+            <div className="mb-1 text-xs text-slate-400">{t.paymentLegalNote}</div>
+            <div className="mb-4 text-xs text-slate-300">
+              {billingSupportLine}{" "}
+              <a href="/contact" className="text-sky-300 underline-offset-2 transition hover:text-sky-200 hover:underline">
+                {footerContactLabel}
+              </a>
+            </div>
             <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">{t.planTag}</div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {billingPlans.length === 0 && (
