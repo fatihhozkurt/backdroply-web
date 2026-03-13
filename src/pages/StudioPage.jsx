@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Sparkles, Wand, X } from "lucide-react";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { api, toFormData } from "../lib/api";
 import { useI18n } from "../i18n";
 import MaskPainter from "../components/MaskPainter";
@@ -11,6 +12,7 @@ const MAX_VIDEO_SECONDS = 18;
 
 export default function StudioPage({ user, setTokenBalance, onLogout, booting = false }) {
   const { t, lang } = useI18n();
+  const location = useLocation();
   const billingSupportLine = t.billingSupportLine || (lang === "tr" ? "Destek/İade/İptal talepleri için iletişim kanalı aktiftir:" : "Support/refund/cancellation channel is active:");
   const footerContactLabel = t.footerContact || (lang === "tr" ? "İletişim" : "Contact");
   const [mediaType, setMediaType] = useState("video");
@@ -68,6 +70,35 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
   const currentTokenCost = quality === "ultra" ? tokenCosts.ultra : tokenCosts.balanced;
   const monthlyPlans = billingPlans.filter((plan) => Number(plan.durationDays || 0) < 365);
   const yearlyPlans = billingPlans.filter((plan) => Number(plan.durationDays || 0) >= 365);
+  const activeStudioView = useMemo(() => {
+    const path = location.pathname || "/studio";
+    if (path.startsWith("/studio/history")) {
+      return "history";
+    }
+    if (path.startsWith("/studio/media")) {
+      return "media";
+    }
+    if (path.startsWith("/studio/account")) {
+      return "account";
+    }
+    return "process";
+  }, [location.pathname]);
+  const studioTabLabelProcess = t.studioNavProcess || (lang === "tr" ? "İşlem" : "Process");
+  const studioTabLabelHistory = t.studioNavHistory || (lang === "tr" ? "Geçmiş" : "History");
+  const studioTabLabelMedia = t.studioNavMedia || t.myMedia || (lang === "tr" ? "Medyalarım" : "My Media");
+  const studioTabLabelAccount = t.studioNavAccount || (lang === "tr" ? "Hesap" : "Account");
+  const studioWorkspaceHint = t.studioWorkspaceHint || (lang === "tr"
+    ? "Odaklı kullanım için stüdyo bölümleri ayrı sekmelere ayrıldı."
+    : "Studio modules are split into focused tabs.");
+  const studioProcessHint = t.studioProcessHint || (lang === "tr"
+    ? "İş akışın hazır olduğunda tek tıkla işlemi başlat."
+    : "Start processing with one click once your setup is ready.");
+  const studioTabs = useMemo(() => ([
+    { key: "process", to: "/studio", label: studioTabLabelProcess, end: true },
+    { key: "history", to: "/studio/history", label: studioTabLabelHistory },
+    { key: "media", to: "/studio/media", label: studioTabLabelMedia },
+    { key: "account", to: "/studio/account", label: studioTabLabelAccount }
+  ]), [studioTabLabelAccount, studioTabLabelHistory, studioTabLabelMedia, studioTabLabelProcess]);
 
   function closeUpsell() {
     setUpsellOpen(false);
@@ -361,8 +392,30 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
           {booting ? t.checkingSession : t.signInRequired}
         </div>
       ) : (
-        <div className="relative grid gap-5 lg:grid-cols-[1.45fr,1fr]">
-          <motion.section
+        <div className="relative">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <nav className="flex flex-wrap items-center gap-2">
+              {studioTabs.map((tab) => (
+                <NavLink
+                  key={tab.key}
+                  to={tab.to}
+                  end={Boolean(tab.end)}
+                  className={({ isActive }) => `rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                    isActive
+                      ? "border-sky-300/60 bg-sky-400/15 text-sky-100 shadow-[0_0_22px_rgba(56,189,248,.18)]"
+                      : "border-slate-700 bg-slate-900/65 text-slate-300 hover:border-slate-500 hover:text-slate-100"
+                  }`}
+                >
+                  {tab.label}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="text-xs text-slate-400">{studioWorkspaceHint}</div>
+          </div>
+
+          {activeStudioView === "process" && (
+            <div className="grid gap-5 xl:grid-cols-[1.45fr,1fr]">
+              <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
@@ -472,7 +525,7 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-sky-400 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Sparkles size={16} />
-              {busy ? t.running : `${t.process} • ${currentTokenCost} ◈`}
+              {busy ? t.running : `${t.process} - ${currentTokenCost} token`}
             </button>
             {!busy && <div className="mt-2 text-xs text-slate-400">{t.tokenCostHint(currentTokenCost)}</div>}
             {status && <div className="mt-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-200">{status}</div>}
@@ -495,23 +548,20 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               transition={{ duration: 0.35, ease: "easeOut", delay: 0.04 }}
               className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4"
             >
-              <h2 className="mb-3 text-sm font-semibold text-slate-100">{t.history}</h2>
-              <div className="max-h-[360px] space-y-2 overflow-auto pr-1">
-                {historyItems.length === 0 ? (
-                  <div className="text-xs text-slate-400">{t.historyEmpty}</div>
-                ) : (
-                  historyItems.map((item) => (
-                    <div key={item.id} className="rounded-xl border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
-                      <div className="font-semibold text-slate-200">
-                        {item.mediaType} - {item.quality}
-                      </div>
-                      <div>{item.inputName}</div>
-                      <div>
-                        qc: {item.qcSuspectFrames ?? 0} | {item.createdAt}
-                      </div>
-                    </div>
-                  ))
-                )}
+              <h2 className="mb-2 text-sm font-semibold text-slate-100">
+                {lang === "tr" ? "Hızlı Erişim" : "Quick Access"}
+              </h2>
+              <p className="mb-3 text-xs text-slate-400">{studioProcessHint}</p>
+              <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+                <Link to="/studio/history" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {studioTabLabelHistory}
+                </Link>
+                <Link to="/studio/media" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {studioTabLabelMedia}
+                </Link>
+                <Link to="/studio/account" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {studioTabLabelAccount}
+                </Link>
               </div>
             </motion.section>
             <motion.section
@@ -520,13 +570,18 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               transition={{ duration: 0.35, ease: "easeOut", delay: 0.08 }}
               className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4"
             >
-              <h2 className="mb-3 text-sm font-semibold text-slate-100">{t.myMedia}</h2>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-slate-100">{t.myMedia}</h2>
+                <Link to="/studio/media" className="text-[11px] text-sky-300 transition hover:text-sky-200">
+                  {lang === "tr" ? "Tümünü gör" : "View all"}
+                </Link>
+              </div>
               <div className="mb-2 text-[11px] text-slate-400">{t.myMediaRetention}</div>
-              <div className="max-h-[220px] space-y-2 overflow-auto pr-1">
+              <div className="max-h-[176px] space-y-2 overflow-auto pr-1">
                 {mediaItems.length === 0 ? (
                   <div className="text-xs text-slate-400">{t.myMediaEmpty}</div>
                 ) : (
-                  mediaItems.map((item) => (
+                  mediaItems.slice(0, 3).map((item) => (
                     <div key={item.jobId} className="rounded-xl border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
                       <div className="font-semibold text-slate-200">{item.outputName}</div>
                       <div>
@@ -550,17 +605,179 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               transition={{ duration: 0.35, ease: "easeOut", delay: 0.12 }}
               className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 text-xs text-slate-300"
             >
-              <div className="mb-2 font-semibold text-slate-100">{t.privacySecurityTitle}</div>
-              <p>{t.privacySecurityDesc}</p>
-              <button
-                type="button"
-                className="mt-3 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-200"
-                onClick={deleteAccount}
-              >
-                {t.deleteAccount}
-              </button>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="font-semibold text-slate-100">{t.history}</div>
+                <Link to="/studio/history" className="text-[11px] text-sky-300 transition hover:text-sky-200">
+                  {lang === "tr" ? "Tümünü gör" : "View all"}
+                </Link>
+              </div>
+              <div className="max-h-[142px] space-y-2 overflow-auto pr-1">
+                {historyItems.length === 0 ? (
+                  <div className="text-xs text-slate-400">{t.historyEmpty}</div>
+                ) : (
+                  historyItems.slice(0, 3).map((item) => (
+                    <div key={item.id} className="rounded-xl border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
+                      <div className="font-semibold text-slate-200">
+                        {item.mediaType} - {item.quality}
+                      </div>
+                      <div className="truncate">{item.inputName}</div>
+                    </div>
+                  ))
+                )}
+              </div>
             </motion.section>
           </aside>
+            </div>
+          )}
+
+          {activeStudioView === "history" && (
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950/80 p-5 shadow-[0_24px_60px_rgba(2,6,23,.58)]"
+            >
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-100">{t.history}</h2>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {lang === "tr"
+                      ? "İşlenen görevler burada listelenir. Başarılı kayıtları indirebilirsin."
+                      : "Processed jobs are listed here. You can download completed outputs."}
+                  </p>
+                </div>
+                <Link to="/studio" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {lang === "tr" ? "Yeni İşlem" : "New Process"}
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {historyItems.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-400">{t.historyEmpty}</div>
+                ) : (
+                  historyItems.map((item) => {
+                    const statusValue = String(item.status || "").toLowerCase();
+                    const canDownloadHistory = Boolean(item.jobId) && statusValue === "success";
+                    return (
+                      <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/65 p-3 text-sm text-slate-300">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <div className="font-semibold text-slate-100">{item.inputName}</div>
+                            <div className="mt-1 text-xs text-slate-400">
+                              {item.mediaType} - {item.quality} - {item.createdAt}
+                            </div>
+                          </div>
+                          <div className="rounded-full border border-slate-700 px-2 py-1 text-[11px] uppercase tracking-[0.08em] text-slate-300">
+                            {item.status || "UNKNOWN"}
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs text-slate-400">qc: {item.qcSuspectFrames ?? 0}</div>
+                        {canDownloadHistory && (
+                          <button
+                            type="button"
+                            onClick={() => downloadByJob(item.jobId)}
+                            className="mt-3 inline-flex items-center gap-2 rounded-md border border-emerald-400/35 bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-200"
+                          >
+                            <Download size={13} />
+                            {t.downloadResult}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </motion.section>
+          )}
+
+          {activeStudioView === "media" && (
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950/80 p-5 shadow-[0_24px_60px_rgba(2,6,23,.58)]"
+            >
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-100">{t.myMedia}</h2>
+                  <p className="mt-1 text-xs text-slate-400">{t.myMediaRetention}</p>
+                </div>
+                <Link to="/studio" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {lang === "tr" ? "Yeni İşlem" : "New Process"}
+                </Link>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {mediaItems.length === 0 ? (
+                  <div className="md:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-400">{t.myMediaEmpty}</div>
+                ) : (
+                  mediaItems.map((item) => (
+                    <div key={item.jobId} className="rounded-2xl border border-slate-800 bg-slate-900/65 p-3 text-sm text-slate-300">
+                      <div className="font-semibold text-slate-100">{item.outputName}</div>
+                      <div className="mt-1 text-xs text-slate-400">
+                        {item.mediaType} - {item.createdAt}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => downloadByJob(item.jobId)}
+                        className="mt-3 inline-flex items-center gap-2 rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-100 transition hover:border-slate-500"
+                      >
+                        <Download size={13} />
+                        {t.downloadResult}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.section>
+          )}
+
+          {activeStudioView === "account" && (
+            <motion.section
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950/80 p-5 shadow-[0_24px_60px_rgba(2,6,23,.58)]"
+            >
+              <h2 className="text-lg font-semibold text-slate-100">{studioTabLabelAccount}</h2>
+              <p className="mt-1 text-xs text-slate-400">{t.privacySecurityDesc}</p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
+                  <div className="mb-2 text-sm font-semibold text-slate-100">
+                    {lang === "tr" ? "Yasal ve Destek" : "Legal & Support"}
+                  </div>
+                  <div className="mb-3 text-xs text-slate-400">{billingSupportLine}</div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <a href={`/legal/privacy.html?lang=${lang}`} target="_blank" rel="noreferrer" className="rounded-full border border-slate-700 px-2 py-1 text-slate-200 transition hover:border-slate-500">
+                      {t.footerPrivacy}
+                    </a>
+                    <a href={`/legal/terms.html?lang=${lang}`} target="_blank" rel="noreferrer" className="rounded-full border border-slate-700 px-2 py-1 text-slate-200 transition hover:border-slate-500">
+                      {t.footerTerms}
+                    </a>
+                    <a href={`/legal/cookies.html?lang=${lang}`} target="_blank" rel="noreferrer" className="rounded-full border border-slate-700 px-2 py-1 text-slate-200 transition hover:border-slate-500">
+                      {t.footerCookie}
+                    </a>
+                    <Link to="/contact" className="rounded-full border border-slate-700 px-2 py-1 text-slate-200 transition hover:border-slate-500">
+                      {footerContactLabel}
+                    </Link>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
+                  <div className="mb-2 text-sm font-semibold text-slate-100">{t.privacySecurityTitle}</div>
+                  <p className="text-xs text-slate-400">
+                    {lang === "tr"
+                      ? "Hesabı sildiğinde geçmiş ve medya kayıtları kaldırılır. Aynı Google hesabıyla tekrar giriş yeni bir hesap oluşturur."
+                      : "Deleting your account removes history and media records. Signing in again with the same Google account creates a new account."}
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-4 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-200"
+                    onClick={deleteAccount}
+                  >
+                    {t.deleteAccount}
+                  </button>
+                </div>
+              </div>
+            </motion.section>
+          )}
         </div>
       )}
 
@@ -591,9 +808,9 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
             <div className="mb-1 text-xs text-slate-400">{t.paymentLegalNote}</div>
             <div className="mb-4 text-xs text-slate-300">
               {billingSupportLine}{" "}
-              <a href="/contact" className="text-sky-300 underline-offset-2 transition hover:text-sky-200 hover:underline">
+              <Link to="/contact" className="text-sky-300 underline-offset-2 transition hover:text-sky-200 hover:underline">
                 {footerContactLabel}
-              </a>
+              </Link>
             </div>
             <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">{t.planTag}</div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

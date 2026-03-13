@@ -92,7 +92,7 @@ export default function App() {
           )}
         />
         <Route
-          path="/studio"
+          path="/studio/*"
           element={
             <StudioPage
               user={user}
