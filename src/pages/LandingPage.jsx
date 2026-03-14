@@ -32,7 +32,7 @@ const authCardTransition = {
 };
 
 export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [openGuide, setOpenGuide] = useState(false);
   const [openAuthModal, setOpenAuthModal] = useState(false);
@@ -112,19 +112,19 @@ export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
         <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-cyan-300/15 blur-3xl" />
         <div className="absolute -right-24 top-20 h-80 w-80 rounded-full bg-blue-500/15 blur-3xl" />
 
-        <div className="relative mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+        <div className="relative mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
           <motion.section
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="grid gap-4 rounded-[34px] border border-slate-800/90 bg-gradient-to-br from-slate-900/90 via-[#041433]/95 to-slate-950/95 p-5 shadow-[0_30px_95px_rgba(2,8,23,.62)] sm:p-6 lg:grid-cols-[1.72fr_.98fr] lg:items-start"
+            className="grid gap-3 rounded-[34px] border border-slate-800/90 bg-gradient-to-br from-slate-900/90 via-[#041433]/95 to-slate-950/95 p-4 shadow-[0_30px_95px_rgba(2,8,23,.62)] sm:p-5 lg:grid-cols-[1.72fr_.98fr] lg:items-start"
           >
             <div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.45, delay: 0.05 }}
-                className="mb-4 inline-flex rounded-full border border-sky-300/25 bg-sky-400/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-sky-200"
+                className="mb-3 inline-flex rounded-full border border-sky-300/25 bg-sky-400/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-sky-200"
               >
                 {t.heroTag}
               </motion.div>
@@ -133,7 +133,7 @@ export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.08 }}
-                className="max-w-[15ch] min-h-[3.2em] text-4xl font-semibold leading-[1.03] text-slate-100 md:min-h-[3.1em] md:text-[50px] xl:text-[54px]"
+                className="max-w-[20ch] min-h-[2.85em] text-[clamp(2rem,3.6vw,3.8rem)] font-semibold leading-[1.04] text-slate-100 md:min-h-[2.8em]"
               >
                 {t.heroTitleStart}
                 <FlashWord>{t.heroTitleEmphasis}</FlashWord>
@@ -144,7 +144,7 @@ export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.14 }}
-                className="mt-2.5 min-h-[3rem] max-w-2xl text-base text-slate-300 md:min-h-[3.4rem] md:text-lg"
+                className="mt-2 min-h-[2.2rem] max-w-2xl text-base text-slate-300 md:min-h-[2.5rem] md:text-lg"
               >
                 {t.heroDesc}
               </motion.p>
@@ -153,11 +153,11 @@ export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: 0.18 }}
-                className="mt-6 flex flex-wrap items-center gap-3"
+                className="mt-5 flex flex-wrap items-center gap-3"
               >
                 <button
                   type="button"
-                  className="primary-shine-btn inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_8px_24px_rgba(56,189,248,.24)] transition hover:brightness-110"
+                  className="primary-shine-btn inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-400 px-3.5 py-2 text-sm font-semibold text-slate-950 shadow-[0_8px_24px_rgba(56,189,248,.24)] transition hover:brightness-110"
                   onClick={handleOpenStudio}
                 >
                   {t.heroCta}
@@ -165,7 +165,7 @@ export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
                 </button>
                 <button
                   type="button"
-                  className="rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 transition hover:border-slate-500"
+                  className="rounded-xl border border-slate-700 bg-slate-900/70 px-3.5 py-2 text-sm text-slate-100 transition hover:border-slate-500"
                   onClick={() => setOpenGuide(true)}
                 >
                   {t.guideTitle}
@@ -173,7 +173,7 @@ export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
               </motion.div>
               <p className="mt-2 text-xs text-slate-400">{t.heroScrollHint}</p>
 
-              <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
                 <Feature icon={<WandSparkles size={16} />} title={t.featureAutoTitle} desc={t.featureAutoDesc} />
                 <Feature icon={<ShieldCheck size={16} />} title={t.featureSecureTitle} desc={t.featureSecureDesc} />
                 <Feature icon={<ChartNoAxesColumnIncreasing size={16} />} title={t.featureSaasTitle} desc={t.featureSaasDesc} />
@@ -211,7 +211,7 @@ export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
             {...rise}
             transition={{ duration: 0.45, ease: "easeOut" }}
             id="samples"
-            className="scroll-mt-24 mt-8 rounded-[28px] border border-slate-800 bg-gradient-to-b from-slate-900/75 to-slate-950/65 p-6"
+            className="scroll-mt-24 mt-6 rounded-[28px] border border-slate-800 bg-gradient-to-b from-slate-900/75 to-slate-950/65 p-6"
           >
             <div className="mb-2 text-2xl font-semibold text-slate-100">{t.showcaseTitle}</div>
             <p className="mb-4 max-w-3xl text-sm text-slate-300">{t.showcaseDesc}</p>
@@ -280,7 +280,7 @@ function Feature({ icon, title, desc }) {
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4"
+      className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-3"
     >
       <div className="mb-2 inline-flex rounded-lg bg-slate-800 p-2 text-sky-200">{icon}</div>
       <div className="text-sm font-semibold text-slate-100">{title}</div>

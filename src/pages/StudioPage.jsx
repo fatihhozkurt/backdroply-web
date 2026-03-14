@@ -1,18 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Activity,
-  Download,
-  FolderOpen,
-  History,
-  ImageIcon,
-  Shield,
-  SlidersHorizontal,
-  Sparkles,
-  Upload,
-  Wand,
-  X
-} from "lucide-react";
+import { Download, Sparkles, Wand, X } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { api, toFormData } from "../lib/api";
 import { useI18n } from "../i18n";
@@ -95,22 +83,22 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
     }
     return "process";
   }, [location.pathname]);
-  const studioTabLabelCreate = t.studioNavCreate || (lang === "tr" ? "Yeni Çıktı" : "Create");
+  const studioTabLabelProcess = t.studioNavProcess || (lang === "tr" ? "İşlem" : "Process");
   const studioTabLabelHistory = t.studioNavHistory || (lang === "tr" ? "Geçmiş" : "History");
   const studioTabLabelMedia = t.studioNavMedia || t.myMedia || (lang === "tr" ? "Medyalarım" : "My Media");
-  const studioTabLabelAccount = t.studioNavAccount || (lang === "tr" ? "Hesap ve Güvenlik" : "Account & Security");
+  const studioTabLabelAccount = t.studioNavAccount || (lang === "tr" ? "Hesap" : "Account");
   const studioWorkspaceHint = t.studioWorkspaceHint || (lang === "tr"
-    ? "Her sekme tek bir işe odaklanır: üretim, geçmiş, medya ve hesap."
-    : "Each tab focuses on one job: create, history, media and account.");
+    ? "Odaklı kullanım için stüdyo bölümleri ayrı sekmelere ayrıldı."
+    : "Studio modules are split into focused tabs.");
   const studioProcessHint = t.studioProcessHint || (lang === "tr"
     ? "İş akışın hazır olduğunda tek tıkla işlemi başlat."
     : "Start processing with one click once your setup is ready.");
   const studioTabs = useMemo(() => ([
-    { key: "process", to: "/studio", label: studioTabLabelCreate, icon: Sparkles, end: true },
-    { key: "history", to: "/studio/history", label: studioTabLabelHistory, icon: History },
-    { key: "media", to: "/studio/media", label: studioTabLabelMedia, icon: FolderOpen },
-    { key: "account", to: "/studio/account", label: studioTabLabelAccount, icon: Shield }
-  ]), [studioTabLabelAccount, studioTabLabelCreate, studioTabLabelHistory, studioTabLabelMedia]);
+    { key: "process", to: "/studio", label: studioTabLabelProcess, end: true },
+    { key: "history", to: "/studio/history", label: studioTabLabelHistory },
+    { key: "media", to: "/studio/media", label: studioTabLabelMedia },
+    { key: "account", to: "/studio/account", label: studioTabLabelAccount }
+  ]), [studioTabLabelAccount, studioTabLabelHistory, studioTabLabelMedia, studioTabLabelProcess]);
 
   function closeUpsell() {
     setUpsellOpen(false);
@@ -412,13 +400,12 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
                   key={tab.key}
                   to={tab.to}
                   end={Boolean(tab.end)}
-                  className={({ isActive }) => `inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                  className={({ isActive }) => `rounded-full border px-3 py-1.5 text-xs font-medium transition ${
                     isActive
                       ? "border-sky-300/60 bg-sky-400/15 text-sky-100 shadow-[0_0_22px_rgba(56,189,248,.18)]"
                       : "border-slate-700 bg-slate-900/65 text-slate-300 hover:border-slate-500 hover:text-slate-100"
                   }`}
                 >
-                  <tab.icon size={14} />
                   {tab.label}
                 </NavLink>
               ))}
@@ -434,10 +421,6 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
             transition={{ duration: 0.35, ease: "easeOut" }}
             className="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950/80 p-5 shadow-[0_24px_60px_rgba(2,6,23,.58)]"
           >
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1.5 text-xs font-semibold text-slate-200">
-              <Upload size={13} className="text-sky-300" />
-              {lang === "tr" ? "1) Dosya yükleme" : "1) File upload"}
-            </div>
             <div className="mb-4 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -473,10 +456,6 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               {t.singleFileOnly}
             </label>
 
-            <div className="mb-3 mt-2 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1.5 text-xs font-semibold text-slate-200">
-              <SlidersHorizontal size={13} className="text-sky-300" />
-              {lang === "tr" ? "2) İşleme ayarları" : "2) Processing settings"}
-            </div>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block text-sm text-slate-300">
                 {t.quality}
@@ -535,10 +514,6 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               </div>
             )}
 
-            <div className="mb-3 mt-4 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/70 px-3 py-1.5 text-xs font-semibold text-slate-200">
-              <Wand size={13} className="text-sky-300" />
-              {lang === "tr" ? "3) Brush ile düzeltme (opsiyonel)" : "3) Brush refinement (optional)"}
-            </div>
             <div className="mt-4">
               <MaskPainter imageUrl={brushImage} onMasksChange={setMasks} />
             </div>
@@ -553,12 +528,7 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               {busy ? t.running : `${t.process} - ${currentTokenCost} token`}
             </button>
             {!busy && <div className="mt-2 text-xs text-slate-400">{t.tokenCostHint(currentTokenCost)}</div>}
-            {status && (
-              <div className="mt-3 inline-flex w-full items-start gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-200">
-                <Activity size={14} className="mt-0.5 text-sky-300" />
-                <span>{status}</span>
-              </div>
-            )}
+            {status && <div className="mt-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-200">{status}</div>}
             {downloadUrl && (
               <button
                 type="button"
@@ -578,75 +548,82 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               transition={{ duration: 0.35, ease: "easeOut", delay: 0.04 }}
               className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4"
             >
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-100">
-                <Sparkles size={15} className="text-sky-300" />
-                {lang === "tr" ? "Akış özeti" : "Workflow overview"}
-              </div>
+              <h2 className="mb-2 text-sm font-semibold text-slate-100">
+                {lang === "tr" ? "Hızlı Erişim" : "Quick Access"}
+              </h2>
               <p className="mb-3 text-xs text-slate-400">{studioProcessHint}</p>
-              <div className="space-y-2 text-xs text-slate-300">
-                <div className="flex items-start gap-2 rounded-xl border border-slate-800 bg-slate-900/65 p-2.5">
-                  <Upload size={13} className="mt-0.5 text-sky-300" />
-                  <span>{lang === "tr" ? "Tek dosya yükle ve türü seç (video/görsel)." : "Upload one file and choose media type (video/image)."}</span>
-                </div>
-                <div className="flex items-start gap-2 rounded-xl border border-slate-800 bg-slate-900/65 p-2.5">
-                  <SlidersHorizontal size={13} className="mt-0.5 text-sky-300" />
-                  <span>{lang === "tr" ? "Kalite ve arka plan modunu ayarla." : "Set quality and background mode."}</span>
-                </div>
-                <div className="flex items-start gap-2 rounded-xl border border-slate-800 bg-slate-900/65 p-2.5">
-                  <Wand size={13} className="mt-0.5 text-sky-300" />
-                  <span>{lang === "tr" ? "Gerekirse brush ile zor alanları düzelt." : "Refine difficult areas with brush if needed."}</span>
-                </div>
-                <div className="flex items-start gap-2 rounded-xl border border-slate-800 bg-slate-900/65 p-2.5">
-                  <Activity size={13} className="mt-0.5 text-sky-300" />
-                  <span>{lang === "tr" ? "İşlemi başlat, durum takibini canlı gör." : "Start process and follow live status."}</span>
-                </div>
+              <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+                <Link to="/studio/history" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {studioTabLabelHistory}
+                </Link>
+                <Link to="/studio/media" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {studioTabLabelMedia}
+                </Link>
+                <Link to="/studio/account" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {studioTabLabelAccount}
+                </Link>
               </div>
             </motion.section>
-
             <motion.section
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: "easeOut", delay: 0.08 }}
               className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4"
             >
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-100">
-                <FolderOpen size={15} className="text-sky-300" />
-                {lang === "tr" ? "Stüdyo kısayolları" : "Studio shortcuts"}
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-slate-100">{t.myMedia}</h2>
+                <Link to="/studio/media" className="text-[11px] text-sky-300 transition hover:text-sky-200">
+                  {lang === "tr" ? "Tümünü gör" : "View all"}
+                </Link>
               </div>
-              <div className="grid gap-2">
-                <Link to="/studio/history" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
-                  <History size={13} />
-                  {studioTabLabelHistory}
-                </Link>
-                <Link to="/studio/media" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
-                  <FolderOpen size={13} />
-                  {studioTabLabelMedia}
-                </Link>
-                <Link to="/studio/account" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
-                  <Shield size={13} />
-                  {studioTabLabelAccount}
-                </Link>
+              <div className="mb-2 text-[11px] text-slate-400">{t.myMediaRetention}</div>
+              <div className="max-h-[176px] space-y-2 overflow-auto pr-1">
+                {mediaItems.length === 0 ? (
+                  <div className="text-xs text-slate-400">{t.myMediaEmpty}</div>
+                ) : (
+                  mediaItems.slice(0, 3).map((item) => (
+                    <div key={item.jobId} className="rounded-xl border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
+                      <div className="font-semibold text-slate-200">{item.outputName}</div>
+                      <div>
+                        {item.mediaType} | {item.createdAt}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => downloadByJob(item.jobId)}
+                        className="mt-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-100"
+                      >
+                        {t.downloadResult}
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </motion.section>
-
             <motion.section
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: "easeOut", delay: 0.12 }}
               className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 text-xs text-slate-300"
             >
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-100">
-                <Activity size={15} className="text-sky-300" />
-                {lang === "tr" ? "Canlı durum" : "Live status"}
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="font-semibold text-slate-100">{t.history}</div>
+                <Link to="/studio/history" className="text-[11px] text-sky-300 transition hover:text-sky-200">
+                  {lang === "tr" ? "Tümünü gör" : "View all"}
+                </Link>
               </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/65 p-3 text-xs text-slate-300">
-                {busy
-                  ? (lang === "tr" ? "İşlem devam ediyor. Durum satırını canlı takip edebilirsin." : "Processing is running. You can follow progress from the status line.")
-                  : (lang === "tr" ? "Hazır. Dosya seçip ayarları tamamladıktan sonra başlat." : "Ready. Select file and settings, then start.")}
-              </div>
-              <div className="mt-2 flex items-start gap-2 rounded-xl border border-slate-800 bg-slate-900/65 p-3 text-[11px] text-slate-400">
-                <ImageIcon size={13} className="mt-0.5 text-slate-300" />
-                <span>{t.myMediaRetention}</span>
+              <div className="max-h-[142px] space-y-2 overflow-auto pr-1">
+                {historyItems.length === 0 ? (
+                  <div className="text-xs text-slate-400">{t.historyEmpty}</div>
+                ) : (
+                  historyItems.slice(0, 3).map((item) => (
+                    <div key={item.id} className="rounded-xl border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
+                      <div className="font-semibold text-slate-200">
+                        {item.mediaType} - {item.quality}
+                      </div>
+                      <div className="truncate">{item.inputName}</div>
+                    </div>
+                  ))
+                )}
               </div>
             </motion.section>
           </aside>
@@ -662,19 +639,15 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
             >
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-100">
-                    <History size={18} className="text-sky-300" />
-                    {t.history}
-                  </h2>
+                  <h2 className="text-lg font-semibold text-slate-100">{t.history}</h2>
                   <p className="mt-1 text-xs text-slate-400">
                     {lang === "tr"
                       ? "İşlenen görevler burada listelenir. Başarılı kayıtları indirebilirsin."
                       : "Processed jobs are listed here. You can download completed outputs."}
                   </p>
                 </div>
-                <Link to="/studio" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
-                  <Sparkles size={13} />
-                  {studioTabLabelCreate}
+                <Link to="/studio" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {lang === "tr" ? "Yeni İşlem" : "New Process"}
                 </Link>
               </div>
               <div className="space-y-3">
@@ -725,15 +698,11 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
             >
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-100">
-                    <FolderOpen size={18} className="text-sky-300" />
-                    {t.myMedia}
-                  </h2>
+                  <h2 className="text-lg font-semibold text-slate-100">{t.myMedia}</h2>
                   <p className="mt-1 text-xs text-slate-400">{t.myMediaRetention}</p>
                 </div>
-                <Link to="/studio" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
-                  <Sparkles size={13} />
-                  {studioTabLabelCreate}
+                <Link to="/studio" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
+                  {lang === "tr" ? "Yeni İşlem" : "New Process"}
                 </Link>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
@@ -768,10 +737,7 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               transition={{ duration: 0.35, ease: "easeOut" }}
               className="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950/80 p-5 shadow-[0_24px_60px_rgba(2,6,23,.58)]"
             >
-              <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-100">
-                <Shield size={18} className="text-sky-300" />
-                {studioTabLabelAccount}
-              </h2>
+              <h2 className="text-lg font-semibold text-slate-100">{studioTabLabelAccount}</h2>
               <p className="mt-1 text-xs text-slate-400">{t.privacySecurityDesc}</p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">

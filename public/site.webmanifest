@@ -1,0 +1,18 @@
+{
+  "name": "Backdroply",
+  "short_name": "Backdroply",
+  "description": "AI background remover for videos and images.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#030712",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
+
