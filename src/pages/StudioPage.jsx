@@ -83,16 +83,10 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
     }
     return "process";
   }, [location.pathname]);
-  const studioTabLabelProcess = t.studioNavProcess || (lang === "tr" ? "İşlem" : "Process");
+  const studioTabLabelProcess = t.studioNavProcess || (lang === "tr" ? "Editör" : "Editor");
   const studioTabLabelHistory = t.studioNavHistory || (lang === "tr" ? "Geçmiş" : "History");
   const studioTabLabelMedia = t.studioNavMedia || t.myMedia || (lang === "tr" ? "Medyalarım" : "My Media");
   const studioTabLabelAccount = t.studioNavAccount || (lang === "tr" ? "Hesap" : "Account");
-  const studioWorkspaceHint = t.studioWorkspaceHint || (lang === "tr"
-    ? "Odaklı kullanım için stüdyo bölümleri ayrı sekmelere ayrıldı."
-    : "Studio modules are split into focused tabs.");
-  const studioProcessHint = t.studioProcessHint || (lang === "tr"
-    ? "İş akışın hazır olduğunda tek tıkla işlemi başlat."
-    : "Start processing with one click once your setup is ready.");
   const studioTabs = useMemo(() => ([
     { key: "process", to: "/studio", label: studioTabLabelProcess, end: true },
     { key: "history", to: "/studio/history", label: studioTabLabelHistory },
@@ -410,11 +404,10 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
                 </NavLink>
               ))}
             </nav>
-            <div className="text-xs text-slate-400">{studioWorkspaceHint}</div>
           </div>
 
           {activeStudioView === "process" && (
-            <div className="grid gap-5 xl:grid-cols-[1.45fr,1fr]">
+            <div>
               <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -540,93 +533,6 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               </button>
             )}
           </motion.section>
-
-          <aside className="space-y-4">
-            <motion.section
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: "easeOut", delay: 0.04 }}
-              className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4"
-            >
-              <h2 className="mb-2 text-sm font-semibold text-slate-100">
-                {lang === "tr" ? "Hızlı Erişim" : "Quick Access"}
-              </h2>
-              <p className="mb-3 text-xs text-slate-400">{studioProcessHint}</p>
-              <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
-                <Link to="/studio/history" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
-                  {studioTabLabelHistory}
-                </Link>
-                <Link to="/studio/media" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
-                  {studioTabLabelMedia}
-                </Link>
-                <Link to="/studio/account" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
-                  {studioTabLabelAccount}
-                </Link>
-              </div>
-            </motion.section>
-            <motion.section
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: "easeOut", delay: 0.08 }}
-              className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4"
-            >
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold text-slate-100">{t.myMedia}</h2>
-                <Link to="/studio/media" className="text-[11px] text-sky-300 transition hover:text-sky-200">
-                  {lang === "tr" ? "Tümünü gör" : "View all"}
-                </Link>
-              </div>
-              <div className="mb-2 text-[11px] text-slate-400">{t.myMediaRetention}</div>
-              <div className="max-h-[176px] space-y-2 overflow-auto pr-1">
-                {mediaItems.length === 0 ? (
-                  <div className="text-xs text-slate-400">{t.myMediaEmpty}</div>
-                ) : (
-                  mediaItems.slice(0, 3).map((item) => (
-                    <div key={item.jobId} className="rounded-xl border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
-                      <div className="font-semibold text-slate-200">{item.outputName}</div>
-                      <div>
-                        {item.mediaType} | {item.createdAt}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => downloadByJob(item.jobId)}
-                        className="mt-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-100"
-                      >
-                        {t.downloadResult}
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </motion.section>
-            <motion.section
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: "easeOut", delay: 0.12 }}
-              className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4 text-xs text-slate-300"
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="font-semibold text-slate-100">{t.history}</div>
-                <Link to="/studio/history" className="text-[11px] text-sky-300 transition hover:text-sky-200">
-                  {lang === "tr" ? "Tümünü gör" : "View all"}
-                </Link>
-              </div>
-              <div className="max-h-[142px] space-y-2 overflow-auto pr-1">
-                {historyItems.length === 0 ? (
-                  <div className="text-xs text-slate-400">{t.historyEmpty}</div>
-                ) : (
-                  historyItems.slice(0, 3).map((item) => (
-                    <div key={item.id} className="rounded-xl border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
-                      <div className="font-semibold text-slate-200">
-                        {item.mediaType} - {item.quality}
-                      </div>
-                      <div className="truncate">{item.inputName}</div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </motion.section>
-          </aside>
             </div>
           )}
 

@@ -115,12 +115,16 @@ input:disabled {
 .soft-glow-pulse::before {
   content: "";
   position: absolute;
-  inset: -4px;
+  inset: -5px;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  opacity: 0.16;
-  transform: scale(0.985);
-  animation: subtleGlowPulse 2.8s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 12px rgba(255, 255, 255, 0.2),
+    0 0 22px rgba(125, 211, 252, 0.18);
+  opacity: 0.34;
+  transform: scale(0.992);
+  animation: subtleGlowPulse 2.6s ease-in-out infinite;
   will-change: transform, opacity;
   pointer-events: none;
 }
@@ -147,12 +151,12 @@ input:disabled {
 @keyframes subtleGlowPulse {
   0%,
   100% {
-    opacity: 0.14;
-    transform: scale(0.985);
+    opacity: 0.3;
+    transform: scale(0.992);
   }
   50% {
-    opacity: 0.34;
-    transform: scale(1.02);
+    opacity: 0.62;
+    transform: scale(1.018);
   }
 }
 
