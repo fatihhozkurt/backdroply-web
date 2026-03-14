@@ -32,7 +32,7 @@ const authCardTransition = {
 };
 
 export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
   const [openGuide, setOpenGuide] = useState(false);
   const [openAuthModal, setOpenAuthModal] = useState(false);
@@ -133,7 +133,7 @@ export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.08 }}
-                className="max-w-none text-4xl font-semibold leading-[1.03] text-slate-100 md:text-[52px] xl:text-[56px]"
+                className="max-w-[15ch] min-h-[3.2em] text-4xl font-semibold leading-[1.03] text-slate-100 md:min-h-[3.1em] md:text-[50px] xl:text-[54px]"
               >
                 {t.heroTitleStart}
                 <FlashWord>{t.heroTitleEmphasis}</FlashWord>
@@ -144,7 +144,7 @@ export default function LandingPage({ user, googleEnabled, onGoogleSuccess }) {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.14 }}
-                className="mt-2.5 max-w-2xl text-base text-slate-300 md:text-lg"
+                className="mt-2.5 min-h-[3rem] max-w-2xl text-base text-slate-300 md:min-h-[3.4rem] md:text-lg"
               >
                 {t.heroDesc}
               </motion.p>
