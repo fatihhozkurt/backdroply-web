@@ -3,8 +3,11 @@ import { motion } from "framer-motion";
 import {
   AlertTriangle,
   BadgeCheck,
+  BookOpen,
   ChevronDown,
   ChevronUp,
+  Circle,
+  CheckCircle2,
   CreditCard,
   Download,
   FolderKanban,
@@ -18,6 +21,8 @@ import {
   SlidersHorizontal,
   Sparkles,
   TimerReset,
+  RotateCcw,
+  ListChecks,
   UploadCloud,
   UserRound,
   Video,
@@ -130,6 +135,9 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
   }, [resultPreviewUrl]);
 
   const canProcess = Boolean(user && file && !busy);
+  const needsSubjectText = guidanceMode === "text" || guidanceMode === "hybrid";
+  const hasSubjectText = String(subjectHintText || "").trim().length >= 3;
+  const canProcessWithGuidance = canProcess && (!needsSubjectText || hasSubjectText);
   const currentTokenCost = quality === "ultra" ? tokenCosts.ultra : tokenCosts.balanced;
   const monthlyPlans = billingPlans.filter((plan) => Number(plan.durationDays || 0) < 365);
   const yearlyPlans = billingPlans.filter((plan) => Number(plan.durationDays || 0) >= 365);
@@ -175,6 +183,46 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     : "Review your result here before downloading.";
   const inputPreviewTitle = lang === "tr" ? "Yüklenen Medya Önizleme" : "Uploaded Media Preview";
 
+  const processDisabledHint = useMemo(() => {
+    if (!user) {
+      return t.signInRequired;
+    }
+    if (!file) {
+      return t.studioNeedFileHint || (lang === "tr" ? "Önce bir görsel veya video yükle." : "Upload an image or video first.");
+    }
+    if (busy) {
+      return t.running;
+    }
+    if (needsSubjectText && !hasSubjectText) {
+      return t.subjectGuidanceNeedText || (lang === "tr"
+        ? "Metin/Hibrit modunda en az 3 karakterlik nesne tarifi gir."
+        : "For Text/Hybrid mode, enter a subject hint with at least 3 characters.");
+    }
+    return t.tokenCostHint(currentTokenCost);
+  }, [busy, currentTokenCost, file, hasSubjectText, lang, needsSubjectText, t, user]);
+  const setupChecklist = useMemo(() => ([
+    {
+      key: "file",
+      done: Boolean(file),
+      label: t.studioChecklistFile || (lang === "tr" ? "Dosya yüklendi" : "File uploaded")
+    },
+    {
+      key: "quality",
+      done: quality === "balanced" || quality === "ultra",
+      label: t.studioChecklistQuality || (lang === "tr" ? "Kalite seçildi" : "Quality selected")
+    },
+    {
+      key: "guidance",
+      done: !needsSubjectText || hasSubjectText,
+      label: t.studioChecklistGuidance || (lang === "tr" ? "Yönlendirme hazır" : "Guidance ready")
+    },
+    {
+      key: "run",
+      done: canProcessWithGuidance,
+      label: t.studioChecklistRun || (lang === "tr" ? "İşleme hazır" : "Ready to process")
+    }
+  ]), [canProcessWithGuidance, file, hasSubjectText, lang, needsSubjectText, quality, t]);
+
   function closeUpsell() {
     setUpsellOpen(false);
   }
@@ -201,6 +249,24 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     setResultPreviewUrl("");
     setResultPreviewType("");
     setResultOutputName("");
+  }
+
+  function resetEditorState() {
+    setFile(null);
+    setPreviewUrl("");
+    setBrushImage("");
+    setBrushPanelOpen(false);
+    setMasks({ keepMaskDataUrl: "", eraseMaskDataUrl: "" });
+    setVideoDurationSec(0);
+    setClipStartSec(0);
+    setClipEndSec(0);
+    setFrameSec(0);
+    setGuidanceMode("auto");
+    setSubjectHintText("");
+    setStatusMessage("", { tone: "info", category: "" });
+    setProgressPercent(null);
+    setDownloadUrl("");
+    clearResultPreview();
   }
 
   function filenameFromHeaders(headers, fallbackName) {
@@ -482,6 +548,15 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
         category: "limits"
       });
       setUpsellOpen(true);
+      return;
+    }
+    if (needsSubjectText && !hasSubjectText) {
+      setStatusMessage(
+        t.subjectGuidanceNeedText || (lang === "tr"
+          ? "Metin/Hibrit modunda en az 3 karakterlik nesne tarifi gir."
+          : "For Text/Hybrid mode, enter a subject hint with at least 3 characters."),
+        { tone: "error", category: "limits" }
+      );
       return;
     }
     if (mediaType === "video") {
@@ -919,6 +994,26 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
                 </NavLink>
               ))}
             </nav>
+            {activeStudioView === "process" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStudioGuideOpen(true)}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/75 px-3 py-1.5 text-xs text-slate-200 transition hover:border-slate-500 hover:text-slate-100"
+                >
+                  <BookOpen size={13} className="text-sky-300" />
+                  {t.studioOpenTour || (lang === "tr" ? "Rehberi aç" : "Open guide")}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetEditorState}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/75 px-3 py-1.5 text-xs text-slate-200 transition hover:border-slate-500 hover:text-slate-100"
+                >
+                  <RotateCcw size={13} className="text-sky-300" />
+                  {t.studioResetEditor || (lang === "tr" ? "Editörü sıfırla" : "Reset editor")}
+                </button>
+              </div>
+            )}
           </div>
 
           {activeStudioView === "process" && (
@@ -969,6 +1064,30 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
                 <ImageIcon size={14} />
                 {t.mediaImage}
               </button>
+            </div>
+
+            <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-3">
+              <div className="mb-2 inline-flex items-center gap-2 text-xs text-slate-300">
+                <ListChecks size={14} className="text-sky-300" />
+                {t.studioChecklistTitle || (lang === "tr" ? "Hızlı işlem kontrol listesi" : "Quick processing checklist")}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {setupChecklist.map((item) => (
+                  <div
+                    key={item.key}
+                    className={`rounded-xl border px-2.5 py-2 text-xs ${
+                      item.done
+                        ? "border-emerald-400/35 bg-emerald-500/10 text-emerald-100"
+                        : "border-slate-700 bg-slate-900/70 text-slate-300"
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      {item.done ? <CheckCircle2 size={13} /> : <Circle size={12} />}
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <label className="mb-4 block cursor-pointer rounded-2xl border border-dashed border-slate-700 bg-slate-900/45 p-4 text-sm text-slate-300 transition hover:border-sky-300/35">
@@ -1220,14 +1339,14 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
 
             <button
               type="button"
-              disabled={!canProcess}
+              disabled={!canProcessWithGuidance}
               onClick={runProcess}
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-sky-400 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Sparkles size={16} />
               {busy ? t.running : `${t.process} - ${currentTokenCost} token`}
             </button>
-            {!busy && <div className="mt-2 text-xs text-slate-400">{t.tokenCostHint(currentTokenCost)}</div>}
+            <div className="mt-2 text-xs text-slate-400">{processDisabledHint}</div>
             {(status || typeof progressPercent === "number") && (
               <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${
                 statusTone === "error"

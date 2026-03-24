@@ -191,7 +191,16 @@ const dictionaries = {
     studioGuideStep3Title: "3) Zor sahnelerde düzeltme ekle",
     studioGuideStep3Desc: "Keep/Erase ile boyayarak veya metin yazarak sistemi yönlendirebilirsin.",
     studioGuideStep4Title: "4) Sonucu izle ve indir",
-    studioGuideStep4Desc: "İşlem sonunda output önizlemeden kontrol edip indir."
+    studioGuideStep4Desc: "İşlem sonunda output önizlemeden kontrol edip indir.",
+    studioNeedFileHint: "Önce bir görsel veya video yükle.",
+    subjectGuidanceNeedText: "Metin/Hibrit modunda en az 3 karakterlik nesne tarifi gir.",
+    studioChecklistTitle: "Hızlı işlem kontrol listesi",
+    studioChecklistFile: "Dosya yüklendi",
+    studioChecklistQuality: "Kalite seçildi",
+    studioChecklistGuidance: "Yönlendirme hazır",
+    studioChecklistRun: "İşleme hazır",
+    studioOpenTour: "Rehberi aç",
+    studioResetEditor: "Editörü sıfırla"
   },
   en: {
     navLanding: "Home",
@@ -383,7 +392,16 @@ const dictionaries = {
     studioGuideStep3Title: "3) Add refinements on hard scenes",
     studioGuideStep3Desc: "Use Keep/Erase painting or text hints for difficult edges.",
     studioGuideStep4Title: "4) Preview and download",
-    studioGuideStep4Desc: "Review output in preview area, then download."
+    studioGuideStep4Desc: "Review output in preview area, then download.",
+    studioNeedFileHint: "Upload an image or video first.",
+    subjectGuidanceNeedText: "For Text/Hybrid mode, enter a subject hint with at least 3 characters.",
+    studioChecklistTitle: "Quick processing checklist",
+    studioChecklistFile: "File uploaded",
+    studioChecklistQuality: "Quality selected",
+    studioChecklistGuidance: "Guidance ready",
+    studioChecklistRun: "Ready to process",
+    studioOpenTour: "Open guide",
+    studioResetEditor: "Reset editor"
   }
 };
 
