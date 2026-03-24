@@ -200,7 +200,14 @@ const dictionaries = {
     studioChecklistGuidance: "Yönlendirme hazır",
     studioChecklistRun: "İşleme hazır",
     studioOpenTour: "Rehberi aç",
-    studioResetEditor: "Editörü sıfırla"
+    studioResetEditor: "Editörü sıfırla",
+    brushPanelDisabledHint: "Brush paneli sadece 'Sadece Brush' veya 'Hibrit' modunda açılır.",
+    themeTitle: "Tema Seçimi",
+    themeSubtitle: "Uygulama görünümünü buradan anında değiştirebilirsin.",
+    themeMidnightTitle: "Midnight Pro",
+    themeMidnightDesc: "Mevcut koyu mavi stüdyo teması.",
+    themeRedPandaTitle: "Red Panda Glow",
+    themeRedPandaDesc: "Sıcak turuncu-kiremit tonlu, red panda esintili tema."
   },
   en: {
     navLanding: "Home",
@@ -401,7 +408,14 @@ const dictionaries = {
     studioChecklistGuidance: "Guidance ready",
     studioChecklistRun: "Ready to process",
     studioOpenTour: "Open guide",
-    studioResetEditor: "Reset editor"
+    studioResetEditor: "Reset editor",
+    brushPanelDisabledHint: "Brush panel appears only in 'Brush Only' or 'Hybrid' mode.",
+    themeTitle: "Theme Selection",
+    themeSubtitle: "You can switch the app look instantly from here.",
+    themeMidnightTitle: "Midnight Pro",
+    themeMidnightDesc: "Current dark blue studio theme.",
+    themeRedPandaTitle: "Red Panda Glow",
+    themeRedPandaDesc: "Warm orange-terra tones inspired by red panda colors."
   }
 };
 

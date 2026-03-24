@@ -1,7 +1,27 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageSquareText, Scissors, Sparkles, Wand, X } from "lucide-react";
+import { Image as ImageIcon, Scissors, Sparkles, Wand, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "../i18n";
+
+function BrushMiniVisual({ lang }) {
+  return (
+    <div className="grid gap-2 rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-xs text-slate-200">
+      <div className="flex flex-wrap gap-2">
+        <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[11px] text-slate-950">Keep</span>
+        <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[11px] text-slate-950">Erase</span>
+      </div>
+      <div className="relative h-20 overflow-hidden rounded-lg border border-slate-700 bg-slate-900/80">
+        <div className="absolute left-4 top-3 h-12 w-20 rounded-full bg-emerald-500/45 blur-[1px]" />
+        <div className="absolute right-4 bottom-3 h-10 w-24 rounded-full bg-rose-500/45 blur-[1px]" />
+      </div>
+      <p className="text-[11px] text-slate-400">
+        {lang === "tr"
+          ? "Brush/Hibrit modunda panel görünür."
+          : "Panel appears only in Brush/Hybrid mode."}
+      </p>
+    </div>
+  );
+}
 
 export default function StudioFirstRunModal({ open, onClose }) {
   const { t, lang } = useI18n();
@@ -9,46 +29,81 @@ export default function StudioFirstRunModal({ open, onClose }) {
 
   const slides = useMemo(() => ([
     {
-      key: "auto",
-      icon: Sparkles,
-      title: t.studioGuideStep1Title || (lang === "tr" ? "1) Dosya yukle ve hedefi sec" : "1) Upload and pick target mode"),
-      desc: t.studioGuideStep1Desc || (lang === "tr"
-        ? "Auto, Brush, Metin veya Hibrit moddan birini sec. Sistem bu secime gore ana nesneyi korur."
-        : "Choose Auto, Brush, Text, or Hybrid mode. The pipeline keeps your main subject accordingly."),
-      imageLeft: "/samples/sample-image-before.jpg",
-      imageRight: "/samples/sample-image-after.jpg"
+      key: "upload",
+      icon: ImageIcon,
+      title: lang === "tr" ? "1) Dosya yükle ve modu seç" : "1) Upload file and choose mode",
+      desc: lang === "tr"
+        ? "Video/görsel yükle. Çoğu senaryo için Auto idealdir."
+        : "Upload video/image. Auto is best for most cases.",
+      renderVisual: () => (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950/70">
+            <div className="border-b border-slate-800 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-slate-400">
+              {t.beforeLabel || "Before"}
+            </div>
+            <img src="/samples/sample-image-before.jpg" alt="" className="h-36 w-full object-cover" draggable={false} />
+          </div>
+          <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950/70">
+            <div className="border-b border-slate-800 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-slate-400">
+              {t.afterLabel || "After"}
+            </div>
+            <img src="/samples/sample-image-after.jpg" alt="" className="h-36 w-full object-cover" draggable={false} />
+          </div>
+        </div>
+      )
     },
     {
-      key: "clip",
+      key: "timeline",
       icon: Scissors,
-      title: t.studioGuideStep2Title || (lang === "tr" ? "2) Video kesitini timeline'dan belirle" : "2) Set clip range on timeline"),
-      desc: t.studioGuideStep2Desc || (lang === "tr"
-        ? "Baslangic ve bitis saniyesini timeline uzerinden sec. Sadece secili kesit islenir."
-        : "Pick start and end seconds on timeline. Only selected segment is processed."),
-      imageLeft: "/samples/sample-video-before-demo.frame1.jpg",
-      imageRight: "/samples/sample-video-after-demo.frame1.jpg"
+      title: lang === "tr" ? "2) Video için kesit aralığını seç" : "2) Pick clip range for video",
+      desc: lang === "tr"
+        ? "Timeline üzerinden başlangıç-bitiş belirle. Sadece bu kesit işlenir."
+        : "Set start/end on timeline. Only selected segment is processed.",
+      renderVisual: () => (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950/70">
+            <div className="border-b border-slate-800 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-slate-400">
+              {t.beforeLabel || "Before"}
+            </div>
+            <img src="/samples/sample-video-before-demo.frame1.jpg" alt="" className="h-36 w-full object-cover" draggable={false} />
+          </div>
+          <BrushMiniVisual lang={lang} />
+        </div>
+      )
     },
     {
-      key: "refine",
-      icon: Wand,
-      title: t.studioGuideStep3Title || (lang === "tr" ? "3) Zor karelerde brush veya metin ekle" : "3) Add brush or text refinements"),
-      desc: t.studioGuideStep3Desc || (lang === "tr"
-        ? "Kenar hatalarinda Keep/Erase ile duzelt. Gerekirse 'kisiyi ve laptopu koru' gibi metin ver."
-        : "Use Keep/Erase for edge fixes, and optionally add text like 'keep the person and laptop'."),
-      imageLeft: "/samples/sample-image-before.jpg",
-      imageRight: "/samples/sample-image-after.jpg"
-    },
-    {
-      key: "done",
-      icon: MessageSquareText,
-      title: t.studioGuideStep4Title || (lang === "tr" ? "4) Sonucu izle, sonra indir" : "4) Preview result, then download"),
-      desc: t.studioGuideStep4Desc || (lang === "tr"
-        ? "Hata olursa acik mesaj ve cozum onerisi gorursun. Ciktiyi indirirken kalite korunur."
-        : "If a failure happens, you get clear reason + suggestion. Download keeps output quality."),
-      imageLeft: "/samples/sample-video-before-demo.frame1.jpg",
-      imageRight: "/samples/sample-video-after-demo.frame1.jpg"
+      key: "run",
+      icon: Sparkles,
+      title: lang === "tr" ? "3) İşlemi başlat, sonucu önizle ve indir" : "3) Run, preview, then download",
+      desc: lang === "tr"
+        ? "İlerlemeyi yüzde olarak takip et, sonucu indirmeden önce kontrol et."
+        : "Track progress by percentage and review output before download.",
+      renderVisual: () => (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950/70">
+            <div className="border-b border-slate-800 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-slate-400">
+              {t.afterLabel || "After"}
+            </div>
+            <img src="/samples/sample-video-after-demo.frame1.jpg" alt="" className="h-36 w-full object-cover" draggable={false} />
+          </div>
+          <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-xs text-slate-200">
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-sky-300/40 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-200">
+              <Sparkles size={12} />
+              {lang === "tr" ? "Çıktı Önizleme" : "Output Preview"}
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+              <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-cyan-400 to-sky-500" />
+            </div>
+            <p className="mt-2 text-[11px] text-slate-400">
+              {lang === "tr"
+                ? "Hata olursa kullanıcı dostu sebep + çözüm önerisi gösterilir."
+                : "When errors happen, user-friendly reason + action hint is shown."}
+            </p>
+          </div>
+        </div>
+      )
     }
-  ]), [lang, t]);
+  ]), [lang, t.afterLabel, t.beforeLabel]);
 
   useEffect(() => {
     if (open) {
@@ -100,12 +155,12 @@ export default function StudioFirstRunModal({ open, onClose }) {
             <div>
               <div className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/30 bg-sky-500/10 px-2 py-1 text-[11px] uppercase tracking-[0.12em] text-sky-200">
                 <Sparkles size={12} />
-                {t.guideTitle || (lang === "tr" ? "Hizli Tur" : "Quick Tour")}
+                {lang === "tr" ? "Hızlı Tur" : "Quick Tour"}
               </div>
               <div className="mt-2 text-xs text-slate-400">
-                {t.studioGuideSubtitle || (lang === "tr"
-                  ? "Studyoya ilk giris: 4 adimda en iyi sonuca ulas."
-                  : "First time in Studio: reach best output in 4 quick steps.")}
+                {lang === "tr"
+                  ? "En basit akış: yükle -> seç -> işle."
+                  : "Simplest flow: upload -> choose -> run."}
               </div>
             </div>
             <button
@@ -124,20 +179,7 @@ export default function StudioFirstRunModal({ open, onClose }) {
           </div>
           <p className="mb-4 text-sm text-slate-300">{current.desc}</p>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950/70">
-              <div className="border-b border-slate-800 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-slate-400">
-                {t.beforeLabel || "Before"}
-              </div>
-              <img src={current.imageLeft} alt="" className="h-40 w-full object-cover sm:h-44" draggable={false} />
-            </div>
-            <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950/70">
-              <div className="border-b border-slate-800 px-2 py-1 text-[10px] uppercase tracking-[0.1em] text-slate-400">
-                {t.afterLabel || "After"}
-              </div>
-              <img src={current.imageRight} alt="" className="h-40 w-full object-cover sm:h-44" draggable={false} />
-            </div>
-          </div>
+          {current.renderVisual()}
 
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="flex gap-1.5">
@@ -146,9 +188,7 @@ export default function StudioFirstRunModal({ open, onClose }) {
                   key={slide.key}
                   type="button"
                   onClick={() => setIndex(i)}
-                  className={`h-1.5 rounded-full transition ${
-                    i === index ? "w-8 bg-sky-300" : "w-4 bg-slate-700 hover:bg-slate-500"
-                  }`}
+                  className={`h-1.5 rounded-full transition ${i === index ? "w-8 bg-sky-300" : "w-4 bg-slate-700 hover:bg-slate-500"}`}
                   aria-label={`${i + 1}`}
                 />
               ))}
@@ -174,7 +214,7 @@ export default function StudioFirstRunModal({ open, onClose }) {
                 }}
                 className="cursor-pointer rounded-lg bg-sky-400 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-sky-300"
               >
-                {isLast ? (lang === "tr" ? "Tamam, baslayalim" : "Done, let's start") : (t.guideNext || (lang === "tr" ? "Ileri" : "Next"))}
+                {isLast ? (lang === "tr" ? "Tamam, başlayalım" : "Done, let's start") : (t.guideNext || (lang === "tr" ? "İleri" : "Next"))}
               </button>
             </div>
           </div>

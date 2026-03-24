@@ -6,6 +6,7 @@ import GlobalFooter from "./components/GlobalFooter";
 import SeoHead from "./components/SeoHead";
 import { useI18n } from "./i18n";
 import { api } from "./lib/api";
+import { useTheme } from "./theme";
 import LandingPage from "./pages/LandingPage";
 import ContactPage from "./pages/ContactPage";
 import StudioPage from "./pages/StudioPage";
@@ -124,6 +125,7 @@ function buildSeoConfig(pathname, lang) {
 
 export default function App() {
   const { lang } = useI18n();
+  const { theme } = useTheme();
   const location = useLocation();
   const [user, setUser] = useState(null);
   const [tokenBalance, setTokenBalance] = useState(0);
@@ -196,7 +198,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className={`min-h-screen bg-slate-950 text-slate-100 ${theme === "redpanda" ? "theme-redpanda" : "theme-midnight"}`}>
       <SeoHead
         path={seoConfig.path}
         title={seoConfig.title}

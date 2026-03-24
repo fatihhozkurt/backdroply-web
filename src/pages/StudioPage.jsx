@@ -33,6 +33,7 @@ import {
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { api, toFormData } from "../lib/api";
 import { useI18n } from "../i18n";
+import { useTheme } from "../theme";
 import MaskPainter from "../components/MaskPainter";
 import Tooltip from "../components/Tooltip";
 import VideoClipTimeline from "../components/VideoClipTimeline";
@@ -48,6 +49,7 @@ const ALLOWED_VIDEO_EXT = [".mp4", ".webm", ".mov", ".mkv"];
 
 export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogout, booting = false }) {
   const { t, lang } = useI18n();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
   const billingSupportLine = t.billingSupportLine || (lang === "tr" ? "Destek/İade/İptal talepleri için iletişim kanalı aktiftir:" : "Support/refund/cancellation channel is active:");
   const footerContactLabel = t.footerContact || (lang === "tr" ? "İletişim" : "Contact");
@@ -135,6 +137,7 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
   }, [resultPreviewUrl]);
 
   const canProcess = Boolean(user && file && !busy);
+  const brushEnabled = guidanceMode === "brush" || guidanceMode === "hybrid";
   const needsSubjectText = guidanceMode === "text" || guidanceMode === "hybrid";
   const hasSubjectText = String(subjectHintText || "").trim().length >= 3;
   const canProcessWithGuidance = canProcess && (!needsSubjectText || hasSubjectText);
@@ -222,6 +225,13 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       label: t.studioChecklistRun || (lang === "tr" ? "İşleme hazır" : "Ready to process")
     }
   ]), [canProcessWithGuidance, file, hasSubjectText, lang, needsSubjectText, quality, t]);
+
+  useEffect(() => {
+    if (!brushEnabled) {
+      setBrushPanelOpen(false);
+      setMasks({ keepMaskDataUrl: "", eraseMaskDataUrl: "" });
+    }
+  }, [brushEnabled]);
 
   function closeUpsell() {
     setUpsellOpen(false);
@@ -584,8 +594,8 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
         file,
         quality,
         bgColor: bgMode === "transparent" ? "transparent" : bgColor,
-        keepMaskDataUrl: masks.keepMaskDataUrl,
-        eraseMaskDataUrl: masks.eraseMaskDataUrl,
+        keepMaskDataUrl: brushEnabled ? masks.keepMaskDataUrl : "",
+        eraseMaskDataUrl: brushEnabled ? masks.eraseMaskDataUrl : "",
         guidanceMode,
         subjectHint: (guidanceMode === "text" || guidanceMode === "hybrid") ? subjectHintText : "",
         ...(mediaType === "video"
@@ -1280,7 +1290,7 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
               />
             )}
 
-            {mediaType === "video" && file && (
+            {mediaType === "video" && file && brushEnabled && (
               <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-3">
                 <div className="mb-2 flex items-center gap-2 text-xs text-slate-300">
                   <Wand size={14} />
@@ -1308,7 +1318,8 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
               </div>
             )}
 
-            <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-3">
+            {brushEnabled ? (
+              <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-3">
               <button
                 type="button"
                 onClick={() => setBrushPanelOpen((prev) => !prev)}
@@ -1335,7 +1346,14 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
                   <MaskPainter imageUrl={brushImage} onMasksChange={setMasks} />
                 </div>
               )}
-            </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-3 text-xs text-slate-400">
+                {t.brushPanelDisabledHint || (lang === "tr"
+                  ? "Brush paneli sadece 'Sadece Brush' veya 'Hibrit' modunda açılır."
+                  : "Brush panel appears only in 'Brush Only' or 'Hybrid' mode.")}
+              </div>
+            )}
 
             <button
               type="button"
@@ -1558,7 +1576,7 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
                 {studioTabLabelAccount}
               </h2>
               <p className="mt-1 text-xs text-slate-400">{t.privacySecurityDesc}</p>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
                   <div className="mb-2 text-sm font-semibold text-slate-100">
                     {lang === "tr" ? "Yasal ve Destek" : "Legal & Support"}
@@ -1593,6 +1611,50 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
                   >
                     {t.deleteAccount}
                   </button>
+                </div>
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
+                  <div className="mb-2 text-sm font-semibold text-slate-100">
+                    {t.themeTitle || (lang === "tr" ? "Tema Seçimi" : "Theme Selection")}
+                  </div>
+                  <p className="mb-3 text-xs text-slate-400">
+                    {t.themeSubtitle || (lang === "tr"
+                      ? "Uygulama görünümünü buradan anında değiştirebilirsin."
+                      : "You can switch the app look instantly from here.")}
+                  </p>
+                  <div className="grid gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTheme("midnight")}
+                      className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-xs transition ${
+                        theme === "midnight"
+                          ? "border-sky-300/60 bg-sky-400/12 text-sky-100"
+                          : "border-slate-700 bg-slate-900/70 text-slate-200 hover:border-slate-500"
+                      }`}
+                    >
+                      <div className="mb-1 font-semibold">{t.themeMidnightTitle || (lang === "tr" ? "Midnight Pro" : "Midnight Pro")}</div>
+                      <div className="text-[11px] opacity-85">
+                        {t.themeMidnightDesc || (lang === "tr"
+                          ? "Mevcut koyu mavi stüdyo teması."
+                          : "Current dark blue studio theme.")}
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTheme("redpanda")}
+                      className={`cursor-pointer rounded-xl border px-3 py-2 text-left text-xs transition ${
+                        theme === "redpanda"
+                          ? "border-amber-300/60 bg-amber-500/15 text-amber-100"
+                          : "border-slate-700 bg-slate-900/70 text-slate-200 hover:border-slate-500"
+                      }`}
+                    >
+                      <div className="mb-1 font-semibold">{t.themeRedPandaTitle || (lang === "tr" ? "Red Panda Glow" : "Red Panda Glow")}</div>
+                      <div className="text-[11px] opacity-85">
+                        {t.themeRedPandaDesc || (lang === "tr"
+                          ? "Sıcak turuncu-kiremit tonlu, red panda esintili tema."
+                          : "Warm orange-terra tones inspired by red panda colors.")}
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.section>

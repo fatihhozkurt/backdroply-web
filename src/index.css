@@ -22,6 +22,78 @@ body {
   min-height: 100vh;
 }
 
+.theme-redpanda {
+  color-scheme: dark;
+}
+
+.theme-redpanda body,
+.theme-redpanda {
+  background:
+    radial-gradient(1000px 680px at 8% -10%, rgba(251, 146, 60, 0.22), transparent 56%),
+    radial-gradient(900px 660px at 100% 0%, rgba(239, 68, 68, 0.18), transparent 62%),
+    linear-gradient(180deg, #120d0a 0%, #1a120d 52%, #120d0a 100%);
+}
+
+.theme-redpanda [class*="bg-slate-950"] {
+  background-color: rgba(22, 13, 9, 0.96) !important;
+}
+
+.theme-redpanda [class*="bg-slate-900"] {
+  background-color: rgba(38, 23, 16, 0.9) !important;
+}
+
+.theme-redpanda [class*="bg-slate-800"] {
+  background-color: rgba(61, 37, 26, 0.9) !important;
+}
+
+.theme-redpanda [class*="bg-slate-700"] {
+  background-color: rgba(92, 55, 39, 0.9) !important;
+}
+
+.theme-redpanda [class*="border-slate-800"] {
+  border-color: rgba(123, 77, 53, 0.58) !important;
+}
+
+.theme-redpanda [class*="border-slate-700"] {
+  border-color: rgba(154, 98, 68, 0.62) !important;
+}
+
+.theme-redpanda [class*="border-slate-600"] {
+  border-color: rgba(173, 116, 86, 0.62) !important;
+}
+
+.theme-redpanda [class*="border-slate-500"] {
+  border-color: rgba(206, 148, 113, 0.68) !important;
+}
+
+.theme-redpanda [class*="text-slate-100"] {
+  color: #fff2e8 !important;
+}
+
+.theme-redpanda [class*="text-slate-200"] {
+  color: #fde8d8 !important;
+}
+
+.theme-redpanda [class*="text-slate-300"] {
+  color: #f7d4bc !important;
+}
+
+.theme-redpanda [class*="text-slate-400"] {
+  color: #eab695 !important;
+}
+
+.theme-redpanda [class*="text-slate-500"] {
+  color: #c78662 !important;
+}
+
+.theme-redpanda [class*="from-slate-900"] {
+  --tw-gradient-from: rgb(49 29 20 / 1) var(--tw-gradient-from-position) !important;
+}
+
+.theme-redpanda [class*="to-slate-950"] {
+  --tw-gradient-to: rgb(23 14 10 / 1) var(--tw-gradient-to-position) !important;
+}
+
 a {
   text-decoration: none;
 }
