@@ -1,6 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Sparkles, Wand, X } from "lucide-react";
+import {
+  BadgeCheck,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  Download,
+  FolderKanban,
+  Gem,
+  History as HistoryIcon,
+  Image as ImageIcon,
+  Palette,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  UploadCloud,
+  UserRound,
+  Video,
+  Wand,
+  X,
+  Zap
+} from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { api, toFormData } from "../lib/api";
 import { useI18n } from "../i18n";
@@ -8,9 +28,14 @@ import MaskPainter from "../components/MaskPainter";
 import Tooltip from "../components/Tooltip";
 
 const MAX_VIDEO_SIZE_MB = 120;
-const MAX_VIDEO_SECONDS = 18;
+const MAX_VIDEO_UPLOAD_SECONDS = 120;
+const MAX_VIDEO_CLIP_SECONDS = 18;
+const ALLOWED_IMAGE_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+const ALLOWED_VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/quicktime", "video/x-matroska"]);
+const ALLOWED_IMAGE_EXT = [".png", ".jpg", ".jpeg", ".webp"];
+const ALLOWED_VIDEO_EXT = [".mp4", ".webm", ".mov", ".mkv"];
 
-export default function StudioPage({ user, setTokenBalance, onLogout, booting = false }) {
+export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogout, booting = false }) {
   const { t, lang } = useI18n();
   const location = useLocation();
   const billingSupportLine = t.billingSupportLine || (lang === "tr" ? "Destek/İade/İptal talepleri için iletişim kanalı aktiftir:" : "Support/refund/cancellation channel is active:");
@@ -23,10 +48,15 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
   const [bgColor, setBgColor] = useState("#0f172a");
   const [frameSec, setFrameSec] = useState(0);
   const [brushImage, setBrushImage] = useState("");
+  const [brushPanelOpen, setBrushPanelOpen] = useState(false);
   const [masks, setMasks] = useState({ keepMaskDataUrl: "", eraseMaskDataUrl: "" });
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const [progressPercent, setProgressPercent] = useState(null);
   const [downloadUrl, setDownloadUrl] = useState("");
+  const [resultPreviewUrl, setResultPreviewUrl] = useState("");
+  const [resultPreviewType, setResultPreviewType] = useState("");
+  const [resultOutputName, setResultOutputName] = useState("");
   const [activeJobId, setActiveJobId] = useState(null);
   const [history, setHistory] = useState([]);
   const [myMedia, setMyMedia] = useState([]);
@@ -35,6 +65,9 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
   const [billingPlans, setBillingPlans] = useState([]);
   const [tokenCosts, setTokenCosts] = useState({ balanced: 1, ultra: 2 });
   const [defaultUserTokens, setDefaultUserTokens] = useState(5);
+  const [videoDurationSec, setVideoDurationSec] = useState(0);
+  const [clipStartSec, setClipStartSec] = useState(0);
+  const [clipEndSec, setClipEndSec] = useState(0);
   const videoMetaRef = useRef({ duration: 0 });
 
   useEffect(() => {
@@ -66,6 +99,14 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
     };
   }, [previewUrl]);
 
+  useEffect(() => {
+    return () => {
+      if (resultPreviewUrl) {
+        URL.revokeObjectURL(resultPreviewUrl);
+      }
+    };
+  }, [resultPreviewUrl]);
+
   const canProcess = Boolean(user && file && !busy);
   const currentTokenCost = quality === "ultra" ? tokenCosts.ultra : tokenCosts.balanced;
   const monthlyPlans = billingPlans.filter((plan) => Number(plan.durationDays || 0) < 365);
@@ -88,14 +129,188 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
   const studioTabLabelMedia = t.studioNavMedia || t.myMedia || (lang === "tr" ? "Medyalarım" : "My Media");
   const studioTabLabelAccount = t.studioNavAccount || (lang === "tr" ? "Hesap" : "Account");
   const studioTabs = useMemo(() => ([
-    { key: "process", to: "/studio", label: studioTabLabelProcess, end: true },
-    { key: "history", to: "/studio/history", label: studioTabLabelHistory },
-    { key: "media", to: "/studio/media", label: studioTabLabelMedia },
-    { key: "account", to: "/studio/account", label: studioTabLabelAccount }
+    { key: "process", to: "/studio", label: studioTabLabelProcess, end: true, icon: Wand },
+    { key: "history", to: "/studio/history", label: studioTabLabelHistory, icon: HistoryIcon },
+    { key: "media", to: "/studio/media", label: studioTabLabelMedia, icon: FolderKanban },
+    { key: "account", to: "/studio/account", label: studioTabLabelAccount, icon: UserRound }
   ]), [studioTabLabelAccount, studioTabLabelHistory, studioTabLabelMedia, studioTabLabelProcess]);
+  const uploadedPreviewType = useMemo(() => {
+    if (!file) {
+      return "";
+    }
+    const mime = String(file.type || "").toLowerCase();
+    if (mime.startsWith("video/")) {
+      return "video";
+    }
+    if (mime.startsWith("image/")) {
+      return "image";
+    }
+    return mediaType;
+  }, [file, mediaType]);
+  const outputPreviewTitle = lang === "tr" ? "Çıktı Önizleme" : "Output Preview";
+  const outputPreviewHint = lang === "tr"
+    ? "İndirmeden önce sonucu burada kontrol edebilirsin."
+    : "Review your result here before downloading.";
+  const inputPreviewTitle = lang === "tr" ? "Yüklenen Medya Önizleme" : "Uploaded Media Preview";
 
   function closeUpsell() {
     setUpsellOpen(false);
+  }
+
+  function clearResultPreview() {
+    if (resultPreviewUrl) {
+      URL.revokeObjectURL(resultPreviewUrl);
+    }
+    setResultPreviewUrl("");
+    setResultPreviewType("");
+    setResultOutputName("");
+  }
+
+  function filenameFromHeaders(headers, fallbackName) {
+    const contentDisposition = headers?.["content-disposition"] || "";
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+      try {
+        return decodeURIComponent(utf8Match[1]);
+      } catch {
+        return utf8Match[1];
+      }
+    }
+    const plainMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+    if (plainMatch?.[1]) {
+      return plainMatch[1];
+    }
+    return fallbackName;
+  }
+
+  function applyProgress(nextValue, force = false) {
+    const parsed = Number(nextValue);
+    const safe = Number.isFinite(parsed) ? Math.max(0, Math.min(100, Math.round(parsed))) : null;
+    if (safe == null) {
+      return;
+    }
+    setProgressPercent((prev) => {
+      if (force || prev == null) {
+        return safe;
+      }
+      return Math.max(prev, safe);
+    });
+  }
+
+  function fileExtension(filename) {
+    const value = String(filename || "").toLowerCase();
+    const index = value.lastIndexOf(".");
+    return index >= 0 ? value.slice(index) : "";
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function formatSeconds(value) {
+    const sec = Number.isFinite(value) ? Math.max(0, value) : 0;
+    return sec.toFixed(sec >= 10 ? 1 : 2);
+  }
+
+  const maxSelectableVideoSec = useMemo(
+    () => Math.max(0, Math.min(videoDurationSec || 0, MAX_VIDEO_UPLOAD_SECONDS)),
+    [videoDurationSec]
+  );
+
+  function onClipStartChange(nextStartRaw) {
+    const maxRange = Math.max(0, maxSelectableVideoSec);
+    const start = clamp(Number(nextStartRaw) || 0, 0, maxRange);
+    let end = clamp(Number(clipEndSec) || 0, 0, maxRange);
+    if (end <= start) {
+      end = Math.min(maxRange, start + 0.1);
+    }
+    if (end - start > MAX_VIDEO_CLIP_SECONDS) {
+      end = Math.min(maxRange, start + MAX_VIDEO_CLIP_SECONDS);
+    }
+    setClipStartSec(start);
+    setClipEndSec(end);
+  }
+
+  function onClipEndChange(nextEndRaw) {
+    const maxRange = Math.max(0, maxSelectableVideoSec);
+    let end = clamp(Number(nextEndRaw) || 0, 0, maxRange);
+    let start = clamp(Number(clipStartSec) || 0, 0, maxRange);
+    if (end <= start) {
+      start = Math.max(0, end - 0.1);
+    }
+    if (end - start > MAX_VIDEO_CLIP_SECONDS) {
+      start = Math.max(0, end - MAX_VIDEO_CLIP_SECONDS);
+    }
+    setClipStartSec(start);
+    setClipEndSec(end);
+  }
+
+  function isAllowedImageFile(nextFile) {
+    const mime = String(nextFile?.type || "").toLowerCase();
+    const ext = fileExtension(nextFile?.name);
+    return ALLOWED_IMAGE_MIME.has(mime) || ALLOWED_IMAGE_EXT.includes(ext);
+  }
+
+  function isAllowedVideoFile(nextFile) {
+    const mime = String(nextFile?.type || "").toLowerCase();
+    const ext = fileExtension(nextFile?.name);
+    return ALLOWED_VIDEO_MIME.has(mime) || ALLOWED_VIDEO_EXT.includes(ext);
+  }
+
+  function showUploadError(message) {
+    setStatus(message);
+    if (typeof window !== "undefined" && typeof window.alert === "function") {
+      window.alert(message);
+    }
+  }
+
+  function normalizeApiError(err, fallback) {
+    const data = err?.response?.data;
+    const raw = String(
+      (typeof data === "string" ? data : (data?.error || data?.detail || data?.message || "")) || ""
+    ).trim();
+    const lower = raw.toLowerCase();
+    if (lower.includes("unsupported image content type")) {
+      return t.unsupportedImageContentType || fallback;
+    }
+    if (lower.includes("unsupported video content type")) {
+      return t.unsupportedVideoContentType || fallback;
+    }
+    if (lower.includes("image signature is invalid") || lower.includes("video signature is invalid")) {
+      return t.unsupportedFileType || fallback;
+    }
+    if (lower.includes("video processing worker exited unexpectedly")) {
+      return lang === "tr"
+        ? "Video işleme sırasında altyapı hatası oluştu. Tekrar dene veya kaliteyi Balanced seç."
+        : "Infrastructure error during video processing. Retry or switch quality to Balanced.";
+    }
+    return raw || fallback;
+  }
+
+  async function loadOutputPreview(targetDownloadUrl, mediaTypeHint) {
+    if (!targetDownloadUrl) {
+      return;
+    }
+    try {
+      const res = await api.get(targetDownloadUrl.replace("/api/v1", ""), { responseType: "blob" });
+      const fallbackName = mediaTypeHint === "video" ? "backdroply-output.webm" : "backdroply-output.png";
+      const filename = filenameFromHeaders(res.headers, fallbackName);
+      const mime = String(res.headers?.["content-type"] || res.data?.type || "").toLowerCase();
+      const lowerName = filename.toLowerCase();
+      const type = mime.startsWith("video/") || lowerName.endsWith(".webm") || lowerName.endsWith(".mp4")
+        ? "video"
+        : "image";
+      const nextUrl = URL.createObjectURL(res.data);
+      if (resultPreviewUrl) {
+        URL.revokeObjectURL(resultPreviewUrl);
+      }
+      setResultPreviewUrl(nextUrl);
+      setResultPreviewType(type);
+      setResultOutputName(filename);
+    } catch {
+      const fallback = lang === "tr" ? "Önizleme yüklenemedi, yalnızca indirme kullanılabilir." : "Preview could not be loaded; download is still available.";
+      setStatus((prev) => (prev ? `${prev} | ${fallback}` : fallback));
+    }
   }
 
   useEffect(() => {
@@ -115,17 +330,47 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
 
   async function onFileChange(nextFile) {
     setStatus("");
+    setProgressPercent(null);
     setDownloadUrl("");
+    clearResultPreview();
     setBrushImage("");
+    setBrushPanelOpen(false);
     setMasks({ keepMaskDataUrl: "", eraseMaskDataUrl: "" });
-    setFile(nextFile);
+    setVideoDurationSec(0);
+    setClipStartSec(0);
+    setClipEndSec(0);
     if (!nextFile) {
+      setFile(null);
       setPreviewUrl("");
       return;
     }
+    const detectedMediaType = detectMediaType(nextFile);
+    if (!detectedMediaType) {
+      setFile(null);
+      setPreviewUrl("");
+      showUploadError(t.unsupportedFileType || t.processFailed);
+      return;
+    }
+    if (detectedMediaType === "image" && !isAllowedImageFile(nextFile)) {
+      setFile(null);
+      setPreviewUrl("");
+      showUploadError(t.unsupportedImageContentType || t.processFailed);
+      return;
+    }
+    if (detectedMediaType === "video" && !isAllowedVideoFile(nextFile)) {
+      setFile(null);
+      setPreviewUrl("");
+      showUploadError(t.unsupportedVideoContentType || t.processFailed);
+      return;
+    }
+    const effectiveMediaType = detectedMediaType;
+    if (detectedMediaType && detectedMediaType !== mediaType) {
+      setMediaType(detectedMediaType);
+    }
+    setFile(nextFile);
     const obj = URL.createObjectURL(nextFile);
     setPreviewUrl(obj);
-    if (mediaType === "image") {
+    if (effectiveMediaType === "image") {
       setBrushImage(obj);
       return;
     }
@@ -144,11 +389,24 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
       v.preload = "metadata";
       v.src = url;
       v.onloadedmetadata = () => {
-        videoMetaRef.current.duration = v.duration || 0;
-        if ((v.duration || 0) > MAX_VIDEO_SECONDS) {
-          setStatus(t.videoDurationLimit(MAX_VIDEO_SECONDS));
+        const duration = Number(v.duration || 0);
+        videoMetaRef.current.duration = duration;
+        setVideoDurationSec(duration);
+        const defaultClipEnd = Math.min(duration, MAX_VIDEO_CLIP_SECONDS);
+        setClipStartSec(0);
+        setClipEndSec(defaultClipEnd);
+        if (duration > MAX_VIDEO_UPLOAD_SECONDS) {
+          setStatus(t.videoDurationLimit(MAX_VIDEO_UPLOAD_SECONDS));
           setFile(null);
           setPreviewUrl("");
+          setVideoDurationSec(0);
+          setClipStartSec(0);
+          setClipEndSec(0);
+          resolve();
+          return;
+        }
+        if (duration > MAX_VIDEO_CLIP_SECONDS) {
+          setStatus(t.videoClipHint(MAX_VIDEO_CLIP_SECONDS));
         }
         resolve();
       };
@@ -156,6 +414,9 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
         setStatus(t.videoMetadataError);
         setFile(null);
         setPreviewUrl("");
+        setVideoDurationSec(0);
+        setClipStartSec(0);
+        setClipEndSec(0);
         resolve();
       };
     });
@@ -171,9 +432,10 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
         headers: { "Content-Type": "multipart/form-data" }
       });
       setBrushImage(res.data.frameDataUrl);
+      setBrushPanelOpen(true);
       setStatus(t.frameLoaded);
     } catch (err) {
-      setStatus(err?.response?.data?.error || t.frameExtractError);
+      setStatus(normalizeApiError(err, t.frameExtractError));
     }
   }
 
@@ -181,10 +443,30 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
     if (!canProcess) {
       return;
     }
+    if ((tokenBalance ?? 0) < currentTokenCost) {
+      setStatus(lang === "tr" ? "Yetersiz token. Plan satin alarak devam edebilirsin." : "Not enough tokens. Buy a plan to continue.");
+      setUpsellOpen(true);
+      return;
+    }
+    if (mediaType === "video") {
+      const start = Number(clipStartSec || 0);
+      const end = Number(clipEndSec || 0);
+      const clipLen = end - start;
+      if (!Number.isFinite(start) || !Number.isFinite(end) || clipLen <= 0) {
+        setStatus(t.invalidClipRange);
+        return;
+      }
+      if (clipLen > MAX_VIDEO_CLIP_SECONDS + 1e-6) {
+        setStatus(t.videoClipLengthLimit(MAX_VIDEO_CLIP_SECONDS));
+        return;
+      }
+    }
     let keepBusy = false;
     setBusy(true);
     setStatus("");
+    setProgressPercent(1);
     setDownloadUrl("");
+    clearResultPreview();
     try {
       const endpoint = mediaType === "image" ? "/media/image" : "/media/video";
       const fd = toFormData({
@@ -192,7 +474,13 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
         quality,
         bgColor: bgMode === "transparent" ? "transparent" : bgColor,
         keepMaskDataUrl: masks.keepMaskDataUrl,
-        eraseMaskDataUrl: masks.eraseMaskDataUrl
+        eraseMaskDataUrl: masks.eraseMaskDataUrl,
+        ...(mediaType === "video"
+          ? {
+              clipStartSec: Number(clipStartSec || 0).toFixed(3),
+              clipEndSec: Number(clipEndSec || 0).toFixed(3)
+            }
+          : {})
       });
       const res = await api.post(endpoint, fd, {
         headers: { "Content-Type": "multipart/form-data" }
@@ -203,20 +491,27 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
         await applySuccessStatus(res.data);
       } else if (state === "failed") {
         setStatus(res.data.errorMessage || t.processFailed);
+        setProgressPercent(null);
         setBusy(false);
       } else {
         keepBusy = true;
         setActiveJobId(res.data.jobId);
-        const eta = Number(res.data.etaSeconds || 0);
+        applyProgress(res.data.progressPercent);
         const queuePos = Number(res.data.queuePosition || 0);
-        const etaText = eta > 0 ? (lang === "tr" ? `Tahmini ~${eta} sn` : `Estimated ~${eta}s`) : "";
         const queueText = lang === "tr"
           ? `Kuyrukta (#${queuePos + 1})`
           : `Queued (#${queuePos + 1})`;
-        setStatus([queueText, etaText].filter(Boolean).join(" | "));
+        setStatus(queueText);
       }
     } catch (err) {
-      setStatus(err?.response?.data?.error || t.processFailed);
+      const statusCode = err?.response?.status;
+      const normalized = normalizeApiError(err, t.processFailed);
+      setStatus(normalized);
+      setProgressPercent(null);
+      const lowToken = statusCode === 402 || String(normalized || "").toLowerCase().includes("not enough tokens");
+      if (lowToken) {
+        setUpsellOpen(true);
+      }
       setActiveJobId(null);
     } finally {
       if (!keepBusy) {
@@ -249,27 +544,27 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
         }
         if (state === "failed") {
           setStatus(res.data?.errorMessage || t.processFailed);
+          setProgressPercent(null);
           setActiveJobId(null);
           setBusy(false);
           return;
         }
-        const eta = Number(res.data?.etaSeconds || 0);
+        applyProgress(res.data?.progressPercent);
         const queuePos = Number(res.data?.queuePosition || 0);
         if (state === "processing") {
-          const etaText = eta > 0 ? (lang === "tr" ? `Tahmini ~${eta} sn` : `Estimated ~${eta}s`) : "";
-          setStatus([lang === "tr" ? "İşleniyor" : "Processing", etaText].filter(Boolean).join(" | "));
+          setStatus(lang === "tr" ? "İşleniyor" : "Processing");
           return;
         }
-        const etaText = eta > 0 ? (lang === "tr" ? `Tahmini ~${eta} sn` : `Estimated ~${eta}s`) : "";
         const queueText = lang === "tr"
           ? `Kuyrukta (#${queuePos + 1})`
           : `Queued (#${queuePos + 1})`;
-        setStatus([queueText, etaText].filter(Boolean).join(" | "));
+        setStatus(queueText);
       } catch (err) {
         if (cancelled) {
           return;
         }
-        setStatus(err?.response?.data?.error || t.processFailed);
+        setStatus(normalizeApiError(err, t.processFailed));
+        setProgressPercent(null);
         setActiveJobId(null);
         setBusy(false);
       }
@@ -291,8 +586,10 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
     const spendNote = t.tokenSpentNote(Number(payload.tokenCostUsed || currentTokenCost));
     const wmNote = payload.watermarkApplied ? t.watermarkAppliedNote : t.watermarkFreeNote;
     setStatus(`${t.completedStatus(payload.qcSuspectFrames ?? 0, storedNote)} | ${spendNote} | ${wmNote}`);
-    setDownloadUrl(payload.downloadUrl || "");
-    setUpsellOpen(true);
+    applyProgress(100, true);
+    const nextDownloadUrl = payload.downloadUrl || "";
+    setDownloadUrl(nextDownloadUrl);
+    await loadOutputPreview(nextDownloadUrl, payload.mediaType || mediaType);
     const hist = await api.get("/users/history");
     setHistory(hist.data);
     const mediaRes = await api.get("/media/my-media");
@@ -316,14 +613,21 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
   const mediaItems = useMemo(() => myMedia || [], [myMedia]);
 
   async function downloadOutput() {
+    if (resultPreviewUrl) {
+      const a = document.createElement("a");
+      a.href = resultPreviewUrl;
+      a.download = resultOutputName || "backdroply-output";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      return;
+    }
     if (!downloadUrl) {
       return;
     }
     try {
       const res = await api.get(downloadUrl.replace("/api/v1", ""), { responseType: "blob" });
-      const contentDisposition = res.headers["content-disposition"] || "";
-      const match = contentDisposition.match(/filename="?([^"]+)"?/i);
-      const filename = match?.[1] || "backdroply-output";
+      const filename = filenameFromHeaders(res.headers, "backdroply-output");
       const url = URL.createObjectURL(res.data);
       const a = document.createElement("a");
       a.href = url;
@@ -340,9 +644,7 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
   async function downloadByJob(jobId) {
     try {
       const res = await api.get(`/media/jobs/${jobId}/download`, { responseType: "blob" });
-      const contentDisposition = res.headers["content-disposition"] || "";
-      const match = contentDisposition.match(/filename="?([^"]+)"?/i);
-      const filename = match?.[1] || `backdroply-output-${jobId}`;
+      const filename = filenameFromHeaders(res.headers, `backdroply-output-${jobId}`);
       const url = URL.createObjectURL(res.data);
       const a = document.createElement("a");
       a.href = url;
@@ -370,13 +672,34 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
     }
   }
 
+  function detectMediaType(nextFile) {
+    const mime = String(nextFile?.type || "").toLowerCase();
+    if (mime.startsWith("video/")) {
+      return "video";
+    }
+    if (mime.startsWith("image/")) {
+      return "image";
+    }
+    const lowerName = String(nextFile?.name || "").toLowerCase();
+    if (/\.(mp4|webm|mov|mkv|avi|m4v)$/.test(lowerName)) {
+      return "video";
+    }
+    if (/\.(png|jpg|jpeg|webp|bmp|gif|tiff|heic|heif)$/.test(lowerName)) {
+      return "image";
+    }
+    return "";
+  }
+
   return (
     <main className="relative mx-auto w-full max-w-7xl px-5 py-8">
       <div className="pointer-events-none absolute left-0 top-0 h-44 w-44 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="pointer-events-none absolute right-0 top-6 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
       <div className="relative mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100">{t.studioTitle}</h1>
+          <h1 className="inline-flex items-center gap-2 text-2xl font-semibold text-slate-100">
+            <Sparkles size={20} className="text-cyan-300" />
+            {t.studioTitle}
+          </h1>
           <p className="mt-1 text-xs text-slate-400">{t.privacySecurityDesc}</p>
         </div>
         <div className="text-xs text-slate-400">{t.limits}</div>
@@ -400,7 +723,10 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
                       : "border-slate-700 bg-slate-900/65 text-slate-300 hover:border-slate-500 hover:text-slate-100"
                   }`}
                 >
-                  {tab.label}
+                  <span className="inline-flex items-center gap-1.5">
+                    <tab.icon size={13} />
+                    {tab.label}
+                  </span>
                 </NavLink>
               ))}
             </nav>
@@ -409,6 +735,7 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
           {activeStudioView === "process" && (
             <div>
               <motion.section
+            id="studio-editor-panel"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
@@ -417,41 +744,90 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
             <div className="mb-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                className={`rounded-full px-3 py-1.5 text-sm ${mediaType === "video" ? "bg-sky-400 text-slate-950" : "bg-slate-800 text-slate-200"}`}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm ${mediaType === "video" ? "bg-sky-400 text-slate-950" : "bg-slate-800 text-slate-200"}`}
                 onClick={() => {
                   setMediaType("video");
                   setFile(null);
                   setPreviewUrl("");
+                  setDownloadUrl("");
+                  setProgressPercent(null);
+                  setBrushPanelOpen(false);
+                  setVideoDurationSec(0);
+                  setClipStartSec(0);
+                  setClipEndSec(0);
+                  clearResultPreview();
                 }}
               >
+                <Video size={14} />
                 {t.mediaVideo}
               </button>
               <button
                 type="button"
-                className={`rounded-full px-3 py-1.5 text-sm ${mediaType === "image" ? "bg-sky-400 text-slate-950" : "bg-slate-800 text-slate-200"}`}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm ${mediaType === "image" ? "bg-sky-400 text-slate-950" : "bg-slate-800 text-slate-200"}`}
                 onClick={() => {
                   setMediaType("image");
                   setFile(null);
                   setPreviewUrl("");
+                  setDownloadUrl("");
+                  setProgressPercent(null);
+                  setBrushPanelOpen(false);
+                  setVideoDurationSec(0);
+                  setClipStartSec(0);
+                  setClipEndSec(0);
+                  clearResultPreview();
                 }}
               >
+                <ImageIcon size={14} />
                 {t.mediaImage}
               </button>
             </div>
 
-            <label className="mb-4 block rounded-2xl border border-dashed border-slate-700 bg-slate-900/45 p-4 text-sm text-slate-300 transition hover:border-sky-300/35">
+            <label className="mb-4 block cursor-pointer rounded-2xl border border-dashed border-slate-700 bg-slate-900/45 p-4 text-sm text-slate-300 transition hover:border-sky-300/35">
+              <div className="mb-2 inline-flex items-center gap-2 text-xs text-slate-300">
+                <UploadCloud size={14} className="text-sky-300" />
+                {lang === "tr" ? "Dosya yükleme" : "File upload"}
+              </div>
               <input
                 type="file"
-                accept={mediaType === "image" ? "image/*" : "video/mp4,video/webm"}
-                className="mb-2 block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-xs file:text-slate-100"
+                accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime,video/x-matroska,.mkv,.mov"
+                className="mb-2 block w-full cursor-pointer text-sm text-slate-300 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-xs file:text-slate-100"
                 onChange={(e) => onFileChange(e.target.files?.[0] || null)}
               />
               {t.singleFileOnly}
             </label>
+            {previewUrl && !(uploadedPreviewType === "image" && brushPanelOpen) && (
+              <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-900/65 p-3">
+                <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-medium text-slate-200">
+                  {uploadedPreviewType === "video" ? <Video size={13} className="text-sky-300" /> : <ImageIcon size={13} className="text-sky-300" />}
+                  {inputPreviewTitle}
+                </div>
+                <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950/70">
+                  {uploadedPreviewType === "video" ? (
+                    <video
+                      key={previewUrl}
+                      src={previewUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="h-auto max-h-[300px] w-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={previewUrl}
+                      alt={lang === "tr" ? "Yüklenen medya önizleme" : "Uploaded media preview"}
+                      className="h-auto max-h-[300px] w-full object-contain"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block text-sm text-slate-300">
-                {t.quality}
+                <span className="inline-flex items-center gap-1.5">
+                  <SlidersHorizontal size={14} className="text-sky-300" />
+                  {t.quality}
+                </span>
                 <select
                   className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
                   value={quality}
@@ -462,7 +838,10 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
                 </select>
               </label>
               <label className="block text-sm text-slate-300">
-                {t.bgMode}
+                <span className="inline-flex items-center gap-1.5">
+                  <Palette size={14} className="text-sky-300" />
+                  {t.bgMode}
+                </span>
                 <select
                   className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
                   value={bgMode}
@@ -475,9 +854,69 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
             </div>
             {bgMode === "solid" && (
               <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-300">
+                <Palette size={14} className="text-sky-300" />
                 {t.colorLabel}
                 <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} />
               </label>
+            )}
+
+            {mediaType === "video" && file && videoDurationSec > 0 && (
+              <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-3">
+                <div className="mb-2 flex items-center gap-2 text-xs text-slate-300">
+                  <Video size={14} />
+                  {t.videoClipRange}
+                  <Tooltip text={t.videoClipTooltip} />
+                </div>
+                <div className="mb-3 text-xs text-slate-400">
+                  {t.videoSourceDuration(formatSeconds(videoDurationSec))}
+                  {" | "}
+                  {t.videoSelectedClip(formatSeconds(Math.max(0, clipEndSec - clipStartSec)))}
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="text-xs text-slate-300">
+                    <span>{t.videoClipStart}</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max={maxSelectableVideoSec || 0}
+                      step="0.1"
+                      value={Math.min(clipStartSec, maxSelectableVideoSec || 0)}
+                      onChange={(e) => onClipStartChange(e.target.value)}
+                      className="mt-1 w-full cursor-pointer"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      max={maxSelectableVideoSec || 0}
+                      step="0.1"
+                      value={Number(clipStartSec || 0).toFixed(1)}
+                      onChange={(e) => onClipStartChange(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-sm"
+                    />
+                  </label>
+                  <label className="text-xs text-slate-300">
+                    <span>{t.videoClipEnd}</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max={maxSelectableVideoSec || 0}
+                      step="0.1"
+                      value={Math.min(clipEndSec, maxSelectableVideoSec || 0)}
+                      onChange={(e) => onClipEndChange(e.target.value)}
+                      className="mt-1 w-full cursor-pointer"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      max={maxSelectableVideoSec || 0}
+                      step="0.1"
+                      value={Number(clipEndSec || 0).toFixed(1)}
+                      onChange={(e) => onClipEndChange(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-sm"
+                    />
+                  </label>
+                </div>
+              </div>
             )}
 
             {mediaType === "video" && file && (
@@ -491,6 +930,7 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
                   <input
                     type="number"
                     min="0"
+                    max={maxSelectableVideoSec || 0}
                     step="0.1"
                     value={frameSec}
                     onChange={(e) => setFrameSec(Number(e.target.value))}
@@ -507,8 +947,33 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               </div>
             )}
 
-            <div className="mt-4">
-              <MaskPainter imageUrl={brushImage} onMasksChange={setMasks} />
+            <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-3">
+              <button
+                type="button"
+                onClick={() => setBrushPanelOpen((prev) => !prev)}
+                className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-left text-sm text-slate-100 transition hover:border-slate-500"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Wand size={14} className="text-sky-300" />
+                  {t.brushPanelTitle || (lang === "tr" ? "Brush düzenleme alanı" : "Brush refinement panel")}
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs text-slate-300">
+                  {brushPanelOpen
+                    ? (t.brushPanelHide || (lang === "tr" ? "Paneli kapat" : "Collapse panel"))
+                    : (t.brushPanelShow || (lang === "tr" ? "Paneli aç" : "Open panel"))}
+                  {brushPanelOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </span>
+              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                {t.brushPanelHint || (lang === "tr"
+                  ? "Zor sahnelerde Keep/Erase ile manuel düzeltme için paneli açabilirsin."
+                  : "Open this panel when you need manual Keep/Erase corrections on difficult media.")}
+              </p>
+              {brushPanelOpen && (
+                <div className="mt-3">
+                  <MaskPainter imageUrl={brushImage} onMasksChange={setMasks} />
+                </div>
+              )}
             </div>
 
             <button
@@ -521,7 +986,58 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               {busy ? t.running : `${t.process} - ${currentTokenCost} token`}
             </button>
             {!busy && <div className="mt-2 text-xs text-slate-400">{t.tokenCostHint(currentTokenCost)}</div>}
-            {status && <div className="mt-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-200">{status}</div>}
+            {(status || typeof progressPercent === "number") && (
+              <div className="mt-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-200">
+                {status && <div>{status}</div>}
+                {typeof progressPercent === "number" && (
+                  <div className="mt-2">
+                    <div className="mb-1 text-xs text-sky-200/90">
+                      {lang === "tr" ? `Ilerleme: %${progressPercent}` : `Progress: ${progressPercent}%`}
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-500 transition-[width] duration-500 ease-out"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {resultPreviewUrl && (
+              <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/65 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-100">
+                    <Sparkles size={14} className="text-sky-300" />
+                    {outputPreviewTitle}
+                  </div>
+                  {resultOutputName && (
+                    <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2 py-0.5 text-[11px] text-slate-300">
+                      {resultOutputName}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 text-xs text-slate-400">{outputPreviewHint}</div>
+                <div className="mt-3 overflow-hidden rounded-xl border border-slate-700 bg-slate-950/70">
+                  {resultPreviewType === "video" ? (
+                    <video
+                      key={resultPreviewUrl}
+                      src={resultPreviewUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="h-auto max-h-[380px] w-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={resultPreviewUrl}
+                      alt={lang === "tr" ? "Çıktı önizleme" : "Output preview"}
+                      className="h-auto max-h-[380px] w-full object-contain"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
             {downloadUrl && (
               <button
                 type="button"
@@ -545,7 +1061,10 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
             >
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-100">{t.history}</h2>
+                  <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-100">
+                    <HistoryIcon size={18} className="text-sky-300" />
+                    {t.history}
+                  </h2>
                   <p className="mt-1 text-xs text-slate-400">
                     {lang === "tr"
                       ? "İşlenen görevler burada listelenir. Başarılı kayıtları indirebilirsin."
@@ -604,7 +1123,10 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
             >
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-100">{t.myMedia}</h2>
+                  <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-100">
+                    <FolderKanban size={18} className="text-sky-300" />
+                    {t.myMedia}
+                  </h2>
                   <p className="mt-1 text-xs text-slate-400">{t.myMediaRetention}</p>
                 </div>
                 <Link to="/studio" className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-200 transition hover:border-slate-500">
@@ -643,7 +1165,10 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
               transition={{ duration: 0.35, ease: "easeOut" }}
               className="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950/80 p-5 shadow-[0_24px_60px_rgba(2,6,23,.58)]"
             >
-              <h2 className="text-lg font-semibold text-slate-100">{studioTabLabelAccount}</h2>
+              <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-100">
+                <UserRound size={18} className="text-sky-300" />
+                {studioTabLabelAccount}
+              </h2>
               <p className="mt-1 text-xs text-slate-400">{t.privacySecurityDesc}</p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-300">
@@ -697,19 +1222,39 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
           }}
         >
           <div
-            className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 p-5"
+            className="w-full max-w-3xl rounded-3xl border border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950 p-5 shadow-[0_32px_80px_rgba(2,6,23,.7)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <div className="text-lg font-semibold text-slate-100">{t.upsell}</div>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <div className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-cyan-200">
+                  <CreditCard size={12} />
+                  {lang === "tr" ? "Plan Onerisi" : "Plan Suggestion"}
+                </div>
+                <div className="text-lg font-semibold text-slate-100">{t.upsell}</div>
+              </div>
               <button
                 type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
                 onClick={closeUpsell}
                 aria-label={t.close}
               >
                 <X size={14} />
               </button>
+            </div>
+            <div className="mb-3 grid gap-2 md:grid-cols-3">
+              <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">
+                <div className="mb-1 inline-flex items-center gap-1.5 text-slate-100"><Zap size={12} /> {lang === "tr" ? "Anlik Aktiflestirme" : "Instant Activation"}</div>
+                {lang === "tr" ? "Token yuklenir, akis kesilmeden devam edersin." : "Tokens are added instantly so you can continue."}
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">
+                <div className="mb-1 inline-flex items-center gap-1.5 text-slate-100"><Gem size={12} /> {lang === "tr" ? "Pro Cikti Avantaji" : "Pro Output Benefit"}</div>
+                {lang === "tr" ? "Planlara gore watermark-free cikti secenegi." : "Watermark-free export option on eligible plans."}
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">
+                <div className="mb-1 inline-flex items-center gap-1.5 text-slate-100"><ShieldCheck size={12} /> {lang === "tr" ? "Guvenli Odeme" : "Secure Billing"}</div>
+                {lang === "tr" ? "Webhook ve idempotency korumali odeme akis mimarisi." : "Webhook + idempotency protected payment flow architecture."}
+              </div>
             </div>
             <div className="mb-1 text-xs text-slate-400">{t.paymentLegalNote}</div>
             <div className="mb-4 text-xs text-slate-300">
@@ -731,12 +1276,16 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
                   type="button"
                   disabled={purchaseBusy}
                   onClick={() => buyPack(plan.code)}
-                  className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
+                  className={`cursor-pointer rounded-xl border px-3 py-3 text-left text-sm transition ${
                     plan.popular
-                      ? "border-sky-300/60 bg-sky-400/10 hover:border-sky-200"
+                      ? "border-sky-300/60 bg-sky-400/15 shadow-[0_0_28px_rgba(56,189,248,.18)] hover:border-sky-200"
                       : "border-slate-700 bg-slate-900/70 hover:border-slate-500"
                   }`}
                 >
+                  <div className="mb-1 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-slate-400">
+                    <BadgeCheck size={12} />
+                    {t.planMonthly}
+                  </div>
                   <div className="font-semibold text-slate-100">{lang === "tr" ? plan.labelTr : plan.labelEn}</div>
                   <div className="mt-1 text-xs text-slate-300">{t.planMonthly} • {plan.tokens} token</div>
                   <div className="mt-1 text-xs text-slate-400">{Number(plan.amountTry).toFixed(2)} TRY</div>
@@ -749,8 +1298,12 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
                   type="button"
                   disabled={purchaseBusy}
                   onClick={() => buyPack(plan.code)}
-                  className="rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-3 py-3 text-left text-sm transition hover:border-emerald-300/60"
+                  className="cursor-pointer rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-3 py-3 text-left text-sm transition hover:border-emerald-300/60"
                 >
+                  <div className="mb-1 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-emerald-200">
+                    <BadgeCheck size={12} />
+                    {t.planYearly}
+                  </div>
                   <div className="font-semibold text-slate-100">{lang === "tr" ? plan.labelTr : plan.labelEn}</div>
                   <div className="mt-1 text-xs text-slate-300">{t.planYearly} • {plan.tokens} token</div>
                   <div className="mt-1 text-xs text-slate-400">{Number(plan.amountTry).toFixed(2)} TRY</div>
@@ -764,7 +1317,7 @@ export default function StudioPage({ user, setTokenBalance, onLogout, booting = 
             <div className="mt-3 grid grid-cols-1 gap-2">
               <button
                 type="button"
-                className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200"
+                className="cursor-pointer rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200"
                 onClick={closeUpsell}
               >
                 {t.close}

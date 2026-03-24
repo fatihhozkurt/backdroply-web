@@ -1,6 +1,23 @@
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
+
+function normalizeApiBase(url) {
+  if (typeof window === "undefined") {
+    return url;
+  }
+  const host = window.location.hostname;
+  const isLocalHost = host === "localhost" || host === "127.0.0.1";
+  if (!isLocalHost) {
+    return url;
+  }
+  if (typeof url !== "string") {
+    return url;
+  }
+  return url.replace("http://localhost:", "http://127.0.0.1:");
+}
+
+const API_BASE = normalizeApiBase(RAW_API_BASE);
 
 export const api = axios.create({
   baseURL: API_BASE,

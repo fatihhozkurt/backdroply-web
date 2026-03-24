@@ -39,6 +39,11 @@ input:disabled {
   cursor: not-allowed;
 }
 
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+  cursor: pointer;
+}
+
 .flash-word {
   position: relative;
   display: inline-grid;

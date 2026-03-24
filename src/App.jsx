@@ -9,6 +9,7 @@ import { api } from "./lib/api";
 import LandingPage from "./pages/LandingPage";
 import ContactPage from "./pages/ContactPage";
 import StudioPage from "./pages/StudioPage";
+import AdminAuthPage from "./pages/AdminAuthPage";
 
 const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://backdroply.com").replace(/\/+$/, "");
 
@@ -57,6 +58,28 @@ function buildSeoConfig(pathname, lang) {
         "@type": "WebPage",
         name: "Backdroply Studio",
         url: `${SITE_URL}${safePath}`,
+        inLanguage: tr ? "tr" : "en"
+      }
+    };
+  }
+
+  if (safePath.startsWith("/auth")) {
+    return {
+      path: "/auth",
+      title: tr
+        ? "Backdroply /auth | Özel Yönetim Girişi"
+        : "Backdroply /auth | Private Operations Login",
+      description: tr
+        ? "Yalnızca yetkili yönetici için ayrılmış güvenli giriş yüzeyi."
+        : "Secure private admin login surface reserved for authorized owner access.",
+      image: "/samples/sample-image-after.jpg",
+      imageAlt: tr ? "Backdroply gizli yönetim girişi" : "Backdroply private admin login",
+      robots: "noindex,nofollow,noarchive",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "Backdroply Admin Auth",
+        url: `${SITE_URL}/auth`,
         inLanguage: tr ? "tr" : "en"
       }
     };
@@ -111,6 +134,7 @@ export default function App() {
     () => buildSeoConfig(location.pathname, lang),
     [location.pathname, lang]
   );
+  const isAdminAuthRoute = location.pathname.startsWith("/auth");
 
   useEffect(() => {
     let alive = true;
@@ -183,11 +207,13 @@ export default function App() {
         lang={lang}
         jsonLd={seoConfig.jsonLd}
       />
-      <TopBar
-        user={user}
-        tokenBalance={tokenBalance}
-        onLogout={onLogout}
-      />
+      {!isAdminAuthRoute ? (
+        <TopBar
+          user={user}
+          tokenBalance={tokenBalance}
+          onLogout={onLogout}
+        />
+      ) : null}
       <Routes>
         <Route
           path="/"
@@ -200,10 +226,15 @@ export default function App() {
           )}
         />
         <Route
+          path="/auth"
+          element={<AdminAuthPage />}
+        />
+        <Route
           path="/studio/*"
           element={
             <StudioPage
               user={user}
+              tokenBalance={tokenBalance}
               setTokenBalance={setTokenBalance}
               onLogout={onLogout}
               booting={booting}
@@ -212,8 +243,8 @@ export default function App() {
         />
         <Route path="/contact" element={<ContactPage />} />
       </Routes>
-      <GlobalFooter />
-      <UserConsentNotice />
+      {!isAdminAuthRoute ? <GlobalFooter /> : null}
+      {!isAdminAuthRoute ? <UserConsentNotice /> : null}
     </div>
   );
 }

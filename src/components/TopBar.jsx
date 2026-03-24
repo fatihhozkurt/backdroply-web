@@ -26,7 +26,7 @@ export default function TopBar({ user, tokenBalance, onLogout }) {
           {user ? (
             <button
               type="button"
-              className="rounded-full border border-slate-700 px-3 py-1.5 text-xs text-slate-200 transition hover:border-slate-500"
+              className="cursor-pointer rounded-full border border-slate-700 px-3 py-1.5 text-xs text-slate-200 transition hover:border-slate-500"
               onClick={onLogout}
             >
               {t.signOut}
