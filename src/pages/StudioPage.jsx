@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
+  AlertTriangle,
   BadgeCheck,
   ChevronDown,
   ChevronUp,
@@ -10,10 +11,13 @@ import {
   Gem,
   History as HistoryIcon,
   Image as ImageIcon,
+  Info,
+  MessageSquareText,
   Palette,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  TimerReset,
   UploadCloud,
   UserRound,
   Video,
@@ -26,6 +30,8 @@ import { api, toFormData } from "../lib/api";
 import { useI18n } from "../i18n";
 import MaskPainter from "../components/MaskPainter";
 import Tooltip from "../components/Tooltip";
+import VideoClipTimeline from "../components/VideoClipTimeline";
+import StudioFirstRunModal from "../components/StudioFirstRunModal";
 
 const MAX_VIDEO_SIZE_MB = 120;
 const MAX_VIDEO_UPLOAD_SECONDS = 120;
@@ -52,6 +58,9 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
   const [masks, setMasks] = useState({ keepMaskDataUrl: "", eraseMaskDataUrl: "" });
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const [statusHint, setStatusHint] = useState("");
+  const [statusTone, setStatusTone] = useState("info");
+  const [statusCategory, setStatusCategory] = useState("");
   const [progressPercent, setProgressPercent] = useState(null);
   const [downloadUrl, setDownloadUrl] = useState("");
   const [resultPreviewUrl, setResultPreviewUrl] = useState("");
@@ -68,6 +77,9 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
   const [videoDurationSec, setVideoDurationSec] = useState(0);
   const [clipStartSec, setClipStartSec] = useState(0);
   const [clipEndSec, setClipEndSec] = useState(0);
+  const [guidanceMode, setGuidanceMode] = useState("auto");
+  const [subjectHintText, setSubjectHintText] = useState("");
+  const [studioGuideOpen, setStudioGuideOpen] = useState(false);
   const videoMetaRef = useRef({ duration: 0 });
 
   useEffect(() => {
@@ -89,6 +101,16 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     }
     api.get("/users/history").then((res) => setHistory(res.data)).catch(() => {});
     api.get("/media/my-media").then((res) => setMyMedia(res.data)).catch(() => setMyMedia([]));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    const seen = localStorage.getItem("backdroply_studio_onboarding_seen_v1");
+    if (!seen) {
+      setStudioGuideOpen(true);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -157,6 +179,21 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     setUpsellOpen(false);
   }
 
+  function closeStudioGuide() {
+    localStorage.setItem("backdroply_studio_onboarding_seen_v1", "1");
+    setStudioGuideOpen(false);
+  }
+
+  function setStatusMessage(message, options = {}) {
+    const tone = options.tone || "info";
+    const hint = options.hint || "";
+    const category = options.category || "";
+    setStatus(message || "");
+    setStatusHint(hint);
+    setStatusTone(tone);
+    setStatusCategory(category);
+  }
+
   function clearResultPreview() {
     if (resultPreviewUrl) {
       URL.revokeObjectURL(resultPreviewUrl);
@@ -217,10 +254,10 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     [videoDurationSec]
   );
 
-  function onClipStartChange(nextStartRaw) {
+  function onClipRangeChange(nextStartRaw, nextEndRaw) {
     const maxRange = Math.max(0, maxSelectableVideoSec);
     const start = clamp(Number(nextStartRaw) || 0, 0, maxRange);
-    let end = clamp(Number(clipEndSec) || 0, 0, maxRange);
+    let end = clamp(Number(nextEndRaw) || 0, 0, maxRange);
     if (end <= start) {
       end = Math.min(maxRange, start + 0.1);
     }
@@ -231,18 +268,12 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     setClipEndSec(end);
   }
 
+  function onClipStartChange(nextStartRaw) {
+    onClipRangeChange(nextStartRaw, clipEndSec);
+  }
+
   function onClipEndChange(nextEndRaw) {
-    const maxRange = Math.max(0, maxSelectableVideoSec);
-    let end = clamp(Number(nextEndRaw) || 0, 0, maxRange);
-    let start = clamp(Number(clipStartSec) || 0, 0, maxRange);
-    if (end <= start) {
-      start = Math.max(0, end - 0.1);
-    }
-    if (end - start > MAX_VIDEO_CLIP_SECONDS) {
-      start = Math.max(0, end - MAX_VIDEO_CLIP_SECONDS);
-    }
-    setClipStartSec(start);
-    setClipEndSec(end);
+    onClipRangeChange(clipStartSec, nextEndRaw);
   }
 
   function isAllowedImageFile(nextFile) {
@@ -257,14 +288,14 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     return ALLOWED_VIDEO_MIME.has(mime) || ALLOWED_VIDEO_EXT.includes(ext);
   }
 
-  function showUploadError(message) {
-    setStatus(message);
+  function showUploadError(message, hint = "") {
+    setStatusMessage(message, { tone: "error", hint, category: "upload" });
     if (typeof window !== "undefined" && typeof window.alert === "function") {
       window.alert(message);
     }
   }
 
-  function normalizeApiError(err, fallback) {
+  function normalizeApiErrorLegacy(err, fallback) {
     const data = err?.response?.data;
     const raw = String(
       (typeof data === "string" ? data : (data?.error || data?.detail || data?.message || "")) || ""
@@ -309,7 +340,7 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       setResultOutputName(filename);
     } catch {
       const fallback = lang === "tr" ? "Önizleme yüklenemedi, yalnızca indirme kullanılabilir." : "Preview could not be loaded; download is still available.";
-      setStatus((prev) => (prev ? `${prev} | ${fallback}` : fallback));
+      setStatusMessage(status ? `${status} | ${fallback}` : fallback, { tone: "warning", category: "general" });
     }
   }
 
@@ -329,7 +360,7 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
   }, [upsellOpen]);
 
   async function onFileChange(nextFile) {
-    setStatus("");
+    setStatusMessage("");
     setProgressPercent(null);
     setDownloadUrl("");
     clearResultPreview();
@@ -375,7 +406,7 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       return;
     }
     if (nextFile.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
-      setStatus(t.videoSizeLimit(MAX_VIDEO_SIZE_MB));
+      setStatusMessage(t.videoSizeLimit(MAX_VIDEO_SIZE_MB), { tone: "error", category: "limits" });
       setFile(null);
       setPreviewUrl("");
       return;
@@ -396,7 +427,7 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
         setClipStartSec(0);
         setClipEndSec(defaultClipEnd);
         if (duration > MAX_VIDEO_UPLOAD_SECONDS) {
-          setStatus(t.videoDurationLimit(MAX_VIDEO_UPLOAD_SECONDS));
+          setStatusMessage(t.videoDurationLimit(MAX_VIDEO_UPLOAD_SECONDS), { tone: "error", hint: t.videoClipTooltip || "", category: "limits" });
           setFile(null);
           setPreviewUrl("");
           setVideoDurationSec(0);
@@ -406,12 +437,12 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
           return;
         }
         if (duration > MAX_VIDEO_CLIP_SECONDS) {
-          setStatus(t.videoClipHint(MAX_VIDEO_CLIP_SECONDS));
+          setStatusMessage(t.videoClipHint(MAX_VIDEO_CLIP_SECONDS), { tone: "warning", hint: t.videoClipTooltip || "", category: "limits" });
         }
         resolve();
       };
       v.onerror = () => {
-        setStatus(t.videoMetadataError);
+        setStatusMessage(t.videoMetadataError, { tone: "error", category: "upload" });
         setFile(null);
         setPreviewUrl("");
         setVideoDurationSec(0);
@@ -433,9 +464,10 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       });
       setBrushImage(res.data.frameDataUrl);
       setBrushPanelOpen(true);
-      setStatus(t.frameLoaded);
+      setStatusMessage(t.frameLoaded, { tone: "success", category: "general" });
     } catch (err) {
-      setStatus(normalizeApiError(err, t.frameExtractError));
+      const normalized = normalizeApiError(err, t.frameExtractError);
+      setStatusMessage(normalized.message, { tone: normalized.tone, hint: normalized.hint, category: normalized.category });
     }
   }
 
@@ -444,7 +476,11 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       return;
     }
     if ((tokenBalance ?? 0) < currentTokenCost) {
-      setStatus(lang === "tr" ? "Yetersiz token. Plan satin alarak devam edebilirsin." : "Not enough tokens. Buy a plan to continue.");
+      setStatusMessage(t.errorNotEnoughTokens || (lang === "tr" ? "Yetersiz token." : "Not enough tokens."), {
+        tone: "error",
+        hint: t.errorNotEnoughTokensHint || "",
+        category: "limits"
+      });
       setUpsellOpen(true);
       return;
     }
@@ -453,17 +489,17 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       const end = Number(clipEndSec || 0);
       const clipLen = end - start;
       if (!Number.isFinite(start) || !Number.isFinite(end) || clipLen <= 0) {
-        setStatus(t.invalidClipRange);
+        setStatusMessage(t.invalidClipRange, { tone: "error", hint: t.videoClipTooltip || "", category: "limits" });
         return;
       }
       if (clipLen > MAX_VIDEO_CLIP_SECONDS + 1e-6) {
-        setStatus(t.videoClipLengthLimit(MAX_VIDEO_CLIP_SECONDS));
+        setStatusMessage(t.videoClipLengthLimit(MAX_VIDEO_CLIP_SECONDS), { tone: "error", hint: t.videoClipTooltip || "", category: "limits" });
         return;
       }
     }
     let keepBusy = false;
     setBusy(true);
-    setStatus("");
+    setStatusMessage("");
     setProgressPercent(1);
     setDownloadUrl("");
     clearResultPreview();
@@ -475,6 +511,8 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
         bgColor: bgMode === "transparent" ? "transparent" : bgColor,
         keepMaskDataUrl: masks.keepMaskDataUrl,
         eraseMaskDataUrl: masks.eraseMaskDataUrl,
+        guidanceMode,
+        subjectHint: (guidanceMode === "text" || guidanceMode === "hybrid") ? subjectHintText : "",
         ...(mediaType === "video"
           ? {
               clipStartSec: Number(clipStartSec || 0).toFixed(3),
@@ -490,7 +528,8 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       if (state === "success") {
         await applySuccessStatus(res.data);
       } else if (state === "failed") {
-        setStatus(res.data.errorMessage || t.processFailed);
+        const normalized = normalizeRawError(res.data.errorMessage, t.processFailed);
+        setStatusMessage(normalized.message, { tone: normalized.tone, hint: normalized.hint, category: normalized.category });
         setProgressPercent(null);
         setBusy(false);
       } else {
@@ -501,14 +540,14 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
         const queueText = lang === "tr"
           ? `Kuyrukta (#${queuePos + 1})`
           : `Queued (#${queuePos + 1})`;
-        setStatus(queueText);
+        setStatusMessage(queueText, { tone: "info", category: "queue" });
       }
     } catch (err) {
       const statusCode = err?.response?.status;
       const normalized = normalizeApiError(err, t.processFailed);
-      setStatus(normalized);
+      setStatusMessage(normalized.message, { tone: normalized.tone, hint: normalized.hint, category: normalized.category });
       setProgressPercent(null);
-      const lowToken = statusCode === 402 || String(normalized || "").toLowerCase().includes("not enough tokens");
+      const lowToken = statusCode === 402 || String(normalized.message || "").toLowerCase().includes("not enough tokens");
       if (lowToken) {
         setUpsellOpen(true);
       }
@@ -543,7 +582,8 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
           return;
         }
         if (state === "failed") {
-          setStatus(res.data?.errorMessage || t.processFailed);
+          const normalized = normalizeRawError(res.data?.errorMessage, t.processFailed);
+          setStatusMessage(normalized.message, { tone: normalized.tone, hint: normalized.hint, category: normalized.category });
           setProgressPercent(null);
           setActiveJobId(null);
           setBusy(false);
@@ -552,18 +592,19 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
         applyProgress(res.data?.progressPercent);
         const queuePos = Number(res.data?.queuePosition || 0);
         if (state === "processing") {
-          setStatus(lang === "tr" ? "İşleniyor" : "Processing");
+          setStatusMessage(lang === "tr" ? "Isleniyor" : "Processing", { tone: "info", category: "engine" });
           return;
         }
         const queueText = lang === "tr"
           ? `Kuyrukta (#${queuePos + 1})`
           : `Queued (#${queuePos + 1})`;
-        setStatus(queueText);
+        setStatusMessage(queueText, { tone: "info", category: "queue" });
       } catch (err) {
         if (cancelled) {
           return;
         }
-        setStatus(normalizeApiError(err, t.processFailed));
+        const normalized = normalizeApiError(err, t.processFailed);
+        setStatusMessage(normalized.message, { tone: normalized.tone, hint: normalized.hint, category: normalized.category });
         setProgressPercent(null);
         setActiveJobId(null);
         setBusy(false);
@@ -585,7 +626,10 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     const storedNote = payload.storedInMyMedia ? t.storedInMyMediaNote : "";
     const spendNote = t.tokenSpentNote(Number(payload.tokenCostUsed || currentTokenCost));
     const wmNote = payload.watermarkApplied ? t.watermarkAppliedNote : t.watermarkFreeNote;
-    setStatus(`${t.completedStatus(payload.qcSuspectFrames ?? 0, storedNote)} | ${spendNote} | ${wmNote}`);
+    setStatusMessage(`${t.completedStatus(payload.qcSuspectFrames ?? 0, storedNote)} | ${spendNote} | ${wmNote}`, {
+      tone: "success",
+      category: "general"
+    });
     applyProgress(100, true);
     const nextDownloadUrl = payload.downloadUrl || "";
     setDownloadUrl(nextDownloadUrl);
@@ -600,9 +644,10 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     setPurchaseBusy(true);
     try {
       await api.post("/billing/purchase-intent", { packCode });
-      setStatus(t.buyIntentCreated);
+      setStatusMessage(t.buyIntentCreated, { tone: "success", category: "general" });
     } catch (err) {
-      setStatus(err?.response?.data?.error || t.buyIntentFailed);
+      const normalized = normalizeApiError(err, t.buyIntentFailed);
+      setStatusMessage(normalized.message, { tone: normalized.tone, hint: normalized.hint, category: normalized.category });
     } finally {
       setPurchaseBusy(false);
       setUpsellOpen(false);
@@ -637,7 +682,7 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setStatus(t.outputDownloadFailed);
+      setStatusMessage(t.outputDownloadFailed, { tone: "error", category: "network" });
     }
   }
 
@@ -654,7 +699,7 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setStatus(t.savedMediaDownloadFailed);
+      setStatusMessage(t.savedMediaDownloadFailed, { tone: "error", category: "network" });
     }
   }
 
@@ -665,10 +710,11 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
     }
     try {
       await api.delete("/users/me");
-      setStatus(t.accountDeleteDone);
+      setStatusMessage(t.accountDeleteDone, { tone: "success", category: "general" });
       onLogout?.();
     } catch (err) {
-      setStatus(err?.response?.data?.error || t.accountDeleteFailed);
+      const normalized = normalizeApiError(err, t.accountDeleteFailed);
+      setStatusMessage(normalized.message, { tone: normalized.tone, hint: normalized.hint, category: normalized.category });
     }
   }
 
@@ -688,6 +734,149 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
       return "image";
     }
     return "";
+  }
+
+  function errorGroupLabel(category) {
+    if (category === "upload") {
+      return t.errorGroupUpload || (lang === "tr" ? "Yukleme" : "Upload");
+    }
+    if (category === "limits") {
+      return t.errorGroupLimits || (lang === "tr" ? "Limit" : "Limits");
+    }
+    if (category === "engine") {
+      return t.errorGroupEngine || (lang === "tr" ? "Isleme Motoru" : "Engine");
+    }
+    if (category === "network") {
+      return t.errorGroupNetwork || (lang === "tr" ? "Baglanti" : "Network");
+    }
+    if (category === "security") {
+      return t.errorGroupSecurity || (lang === "tr" ? "Guvenlik" : "Security");
+    }
+    if (category === "queue") {
+      return t.errorGroupQueue || (lang === "tr" ? "Kuyruk" : "Queue");
+    }
+    return t.errorGroupGeneral || (lang === "tr" ? "Durum" : "Status");
+  }
+
+  function classifyErrorByText(statusCode, rawMessage, fallback) {
+    const message = String(rawMessage || "").trim();
+    const lower = message.toLowerCase();
+    if (statusCode === 413 || lower.includes("413 request entity too large")) {
+      return {
+        tone: "error",
+        category: "upload",
+        message: t.errorUploadTooLarge || fallback,
+        hint: t.errorUploadTooLargeHint || ""
+      };
+    }
+    if (statusCode === 402 || lower.includes("not enough tokens")) {
+      return {
+        tone: "error",
+        category: "limits",
+        message: t.errorNotEnoughTokens || fallback,
+        hint: t.errorNotEnoughTokensHint || ""
+      };
+    }
+    if (lower.includes("video resolution exceeds limit")) {
+      return {
+        tone: "error",
+        category: "limits",
+        message: t.errorVideoResolutionLimit || fallback,
+        hint: t.errorVideoResolutionLimitHint || ""
+      };
+    }
+    if (lower.includes("image resolution exceeds limit")) {
+      return {
+        tone: "error",
+        category: "limits",
+        message: t.errorImageResolutionLimit || fallback,
+        hint: t.errorImageResolutionLimitHint || ""
+      };
+    }
+    if (lower.includes("video processing timed out")) {
+      return {
+        tone: "error",
+        category: "engine",
+        message: t.errorVideoTimeout || fallback,
+        hint: t.errorVideoTimeoutHint || ""
+      };
+    }
+    if (lower.includes("worker exited unexpectedly")) {
+      return {
+        tone: "error",
+        category: "engine",
+        message: t.errorEngineWorker || fallback,
+        hint: t.errorEngineWorkerHint || ""
+      };
+    }
+    if (lower.includes("selected clip duration exceeds")) {
+      return {
+        tone: "error",
+        category: "limits",
+        message: t.videoClipLengthLimit(MAX_VIDEO_CLIP_SECONDS),
+        hint: t.videoClipTooltip || ""
+      };
+    }
+    if (lower.includes("video duration exceeds")) {
+      return {
+        tone: "error",
+        category: "limits",
+        message: t.videoDurationLimit(MAX_VIDEO_UPLOAD_SECONDS),
+        hint: t.videoClipTooltip || ""
+      };
+    }
+    if (lower.includes("blocked: suspicious script-like payload")) {
+      return {
+        tone: "error",
+        category: "security",
+        message: t.errorBlockedPayload || fallback,
+        hint: t.errorBlockedPayloadHint || ""
+      };
+    }
+    if (lower.includes("unsupported image content type")) {
+      return { tone: "error", category: "upload", message: t.unsupportedImageContentType || fallback, hint: "" };
+    }
+    if (lower.includes("unsupported video content type")) {
+      return { tone: "error", category: "upload", message: t.unsupportedVideoContentType || fallback, hint: "" };
+    }
+    if (lower.includes("image signature is invalid") || lower.includes("video signature is invalid")) {
+      return { tone: "error", category: "upload", message: t.unsupportedFileType || fallback, hint: "" };
+    }
+    if (lower.includes("network error") || lower.includes("failed to fetch")) {
+      return {
+        tone: "error",
+        category: "network",
+        message: t.errorNetworkGeneric || fallback,
+        hint: t.errorNetworkGenericHint || ""
+      };
+    }
+    if (lower.includes("queue")) {
+      return {
+        tone: "warning",
+        category: "queue",
+        message: message || fallback,
+        hint: ""
+      };
+    }
+    return {
+      tone: "error",
+      category: "general",
+      message: message || fallback,
+      hint: ""
+    };
+  }
+
+  function normalizeApiError(err, fallback) {
+    const statusCode = Number(err?.response?.status || 0);
+    const data = err?.response?.data;
+    const raw = String(
+      (typeof data === "string" ? data : (data?.error || data?.detail || data?.message || "")) || ""
+    ).trim();
+    return classifyErrorByText(statusCode, raw, fallback);
+  }
+
+  function normalizeRawError(rawMessage, fallback, statusCode = 0) {
+    return classifyErrorByText(statusCode, rawMessage, fallback);
   }
 
   return (
@@ -860,63 +1049,116 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
               </label>
             )}
 
-            {mediaType === "video" && file && videoDurationSec > 0 && (
-              <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-3">
-                <div className="mb-2 flex items-center gap-2 text-xs text-slate-300">
-                  <Video size={14} />
-                  {t.videoClipRange}
-                  <Tooltip text={t.videoClipTooltip} />
-                </div>
-                <div className="mb-3 text-xs text-slate-400">
-                  {t.videoSourceDuration(formatSeconds(videoDurationSec))}
-                  {" | "}
-                  {t.videoSelectedClip(formatSeconds(Math.max(0, clipEndSec - clipStartSec)))}
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="text-xs text-slate-300">
-                    <span>{t.videoClipStart}</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max={maxSelectableVideoSec || 0}
-                      step="0.1"
-                      value={Math.min(clipStartSec, maxSelectableVideoSec || 0)}
-                      onChange={(e) => onClipStartChange(e.target.value)}
-                      className="mt-1 w-full cursor-pointer"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max={maxSelectableVideoSec || 0}
-                      step="0.1"
-                      value={Number(clipStartSec || 0).toFixed(1)}
-                      onChange={(e) => onClipStartChange(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-sm"
-                    />
-                  </label>
-                  <label className="text-xs text-slate-300">
-                    <span>{t.videoClipEnd}</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max={maxSelectableVideoSec || 0}
-                      step="0.1"
-                      value={Math.min(clipEndSec, maxSelectableVideoSec || 0)}
-                      onChange={(e) => onClipEndChange(e.target.value)}
-                      className="mt-1 w-full cursor-pointer"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max={maxSelectableVideoSec || 0}
-                      step="0.1"
-                      value={Number(clipEndSec || 0).toFixed(1)}
-                      onChange={(e) => onClipEndChange(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-sm"
-                    />
-                  </label>
-                </div>
+            <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs text-slate-300">
+                <MessageSquareText size={14} className="text-sky-300" />
+                {t.subjectGuidanceTitle || (lang === "tr" ? "Nesne Yonlendirme" : "Subject Guidance")}
+                <Tooltip text={t.subjectGuidanceTooltip || (lang === "tr"
+                  ? "Auto: sistem ana nesneyi otomatik bulur. Brush: Keep/Erase boyama kullan. Metin: neyi korumak istedigini yaz. Hibrit: brush + metin birlikte."
+                  : "Auto: system detects main subject. Brush: use Keep/Erase painting. Text: describe what to keep. Hybrid: combine brush + text.")} />
               </div>
+              <div className="mb-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <button
+                  type="button"
+                  onClick={() => setGuidanceMode("auto")}
+                  className={`cursor-pointer rounded-lg border px-3 py-2 text-xs transition ${
+                    guidanceMode === "auto"
+                      ? "border-sky-300/70 bg-sky-400/15 text-sky-100"
+                      : "border-slate-700 bg-slate-900/70 text-slate-300 hover:border-slate-500"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Sparkles size={13} />
+                    {t.subjectGuidanceAuto || (lang === "tr" ? "Otomatik" : "Auto")}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGuidanceMode("brush")}
+                  className={`cursor-pointer rounded-lg border px-3 py-2 text-xs transition ${
+                    guidanceMode === "brush"
+                      ? "border-sky-300/70 bg-sky-400/15 text-sky-100"
+                      : "border-slate-700 bg-slate-900/70 text-slate-300 hover:border-slate-500"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Wand size={13} />
+                    {t.subjectGuidanceBrush || (lang === "tr" ? "Sadece Brush" : "Brush Only")}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGuidanceMode("text")}
+                  className={`cursor-pointer rounded-lg border px-3 py-2 text-xs transition ${
+                    guidanceMode === "text"
+                      ? "border-sky-300/70 bg-sky-400/15 text-sky-100"
+                      : "border-slate-700 bg-slate-900/70 text-slate-300 hover:border-slate-500"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <MessageSquareText size={13} />
+                    {t.subjectGuidanceText || (lang === "tr" ? "Metinle Tarif" : "Text Prompt")}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGuidanceMode("hybrid")}
+                  className={`cursor-pointer rounded-lg border px-3 py-2 text-xs transition ${
+                    guidanceMode === "hybrid"
+                      ? "border-sky-300/70 bg-sky-400/15 text-sky-100"
+                      : "border-slate-700 bg-slate-900/70 text-slate-300 hover:border-slate-500"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <TimerReset size={13} />
+                    {t.subjectGuidanceHybrid || (lang === "tr" ? "Hibrit" : "Hybrid")}
+                  </span>
+                </button>
+              </div>
+              {(guidanceMode === "text" || guidanceMode === "hybrid") && (
+                <label className="block text-xs text-slate-300">
+                  <span>{t.subjectGuidanceInputLabel || (lang === "tr" ? "Korunacak nesneyi kisaca tarif et" : "Describe the subject you want to keep")}</span>
+                  <textarea
+                    rows={2}
+                    maxLength={220}
+                    value={subjectHintText}
+                    onChange={(event) => setSubjectHintText(event.target.value)}
+                    placeholder={t.subjectGuidancePlaceholder || (lang === "tr"
+                      ? "Ornek: ortadaki kisiyi ve laptopu koru"
+                      : "Example: keep the person in center and the laptop")}
+                    className="mt-1 w-full resize-y rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-2 text-sm text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-sky-300/60"
+                  />
+                </label>
+              )}
+              <div className="mt-2 text-[11px] text-slate-400">
+                {t.subjectGuidanceFootnote || (lang === "tr"
+                  ? "En iyi sonuc icin: otomatik mod + gerekirse brush duzeltmesi kullan."
+                  : "Best result: start in Auto mode and refine with brush only when needed.")}
+              </div>
+            </div>
+
+            {mediaType === "video" && file && videoDurationSec > 0 && (
+              <VideoClipTimeline
+                videoUrl={previewUrl}
+                durationSec={videoDurationSec}
+                maxSelectableSec={maxSelectableVideoSec}
+                clipStartSec={clipStartSec}
+                clipEndSec={clipEndSec}
+                onStartChange={onClipStartChange}
+                onEndChange={onClipEndChange}
+                onRangeChange={onClipRangeChange}
+                maxClipSeconds={MAX_VIDEO_CLIP_SECONDS}
+                labels={{
+                  title: t.videoClipRange,
+                  tooltip: t.videoClipTooltip,
+                  sourceDuration: t.videoSourceDuration(formatSeconds(videoDurationSec)),
+                  selectedDuration: t.videoSelectedClip(formatSeconds(Math.max(0, clipEndSec - clipStartSec))),
+                  start: t.videoClipStart,
+                  end: t.videoClipEnd,
+                  quickPresets: t.videoClipQuickPresets || (lang === "tr" ? "Hizli secim" : "Quick presets"),
+                  presetMax: t.videoClipPresetMax || (lang === "tr" ? "Maksimum" : "Maximum")
+                }}
+              />
             )}
 
             {mediaType === "video" && file && (
@@ -987,8 +1229,35 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
             </button>
             {!busy && <div className="mt-2 text-xs text-slate-400">{t.tokenCostHint(currentTokenCost)}</div>}
             {(status || typeof progressPercent === "number") && (
-              <div className="mt-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-sm text-slate-200">
-                {status && <div>{status}</div>}
+              <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${
+                statusTone === "error"
+                  ? "border-rose-400/40 bg-rose-500/10 text-rose-100"
+                  : statusTone === "success"
+                    ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-100"
+                    : statusTone === "warning"
+                      ? "border-amber-400/40 bg-amber-500/10 text-amber-100"
+                      : "border-slate-800 bg-slate-900/60 text-slate-200"
+              }`}>
+                {status && (
+                  <div className="inline-flex items-start gap-2">
+                    {statusTone === "error" ? (
+                      <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+                    ) : statusTone === "success" ? (
+                      <BadgeCheck size={15} className="mt-0.5 shrink-0" />
+                    ) : (
+                      <Info size={15} className="mt-0.5 shrink-0" />
+                    )}
+                    <div>
+                      {statusCategory && (
+                        <span className="mb-1 inline-flex rounded-full border border-slate-500/40 bg-slate-950/60 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-slate-200/85">
+                          {errorGroupLabel(statusCategory)}
+                        </span>
+                      )}
+                      <div>{status}</div>
+                    </div>
+                  </div>
+                )}
+                {statusHint && <div className="mt-1 text-xs opacity-90">{statusHint}</div>}
                 {typeof progressPercent === "number" && (
                   <div className="mt-2">
                     <div className="mb-1 text-xs text-sky-200/90">
@@ -1211,6 +1480,11 @@ export default function StudioPage({ user, tokenBalance, setTokenBalance, onLogo
           )}
         </div>
       )}
+
+      <StudioFirstRunModal
+        open={studioGuideOpen}
+        onClose={closeStudioGuide}
+      />
 
       {upsellOpen && (
         <div
